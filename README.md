@@ -1,4 +1,4 @@
-# 🛡️ ValueOracle
+# ValueOracle
 
 **AI agents can spend money, but they cannot verify value. We built the missing trust layer for agent commerce.**
 
