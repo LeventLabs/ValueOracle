@@ -4,11 +4,11 @@
 
 ValueOracle is a verifiable commerce oracle powered by Chainlink CRE that protects autonomous agents from overpaying, fraud, and price manipulation. Think of Chainlink price feeds — but for real-world product decisions.
 
-> 🏆 Built for [Convergence: A Chainlink Hackathon](https://chain.link/hackathon) — CRE & AI Track
+> Built for [Convergence: A Chainlink Hackathon](https://chain.link/hackathon) — CRE & AI Track
 
 ---
 
-## 🎯 Problem
+## Problem
 
 Autonomous AI agents can initiate transactions, but they lack economic reasoning:
 
@@ -18,7 +18,7 @@ Autonomous AI agents can initiate transactions, but they lack economic reasoning
 
 This creates unacceptable financial risk in agent-driven commerce.
 
-## 💡 Solution
+## Solution
 
 ValueOracle acts as a **decision oracle** between an agent's purchase intent and the actual transaction. Before any funds move, the oracle:
 
@@ -32,7 +32,7 @@ Financial Oracle → token price
 ValueOracle     → real-world purchase decision
 ```
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────┐     ┌──────────────────┐     ┌─────────────────┐
@@ -61,7 +61,7 @@ ValueOracle     → real-world purchase decision
 4. Decision engine evaluates price fairness
 5. Oracle returns signed result → contract approves or rejects
 
-## 🔧 Tech Stack
+## Tech Stack
 
 | Component | Technology |
 |---|---|
@@ -71,7 +71,7 @@ ValueOracle     → real-world purchase decision
 | Agent Trigger | CLI / Script |
 | Data Sources | Mock marketplace APIs |
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 ValueOracle/
@@ -91,7 +91,7 @@ ValueOracle/
     └── PurchaseGuard.test.js
 ```
 
-## 🔗 Chainlink Integration Files
+## Chainlink Integration Files
 
 > Required by hackathon: links to all files that use Chainlink
 
@@ -101,7 +101,7 @@ ValueOracle/
 | [`cre/workflow.yaml`](./cre/workflow.yaml) | CRE workflow definition — triggers on events, fetches data, returns decision |
 | [`scripts/simulate.js`](./scripts/simulate.js) | CRE CLI simulation script |
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 # Clone
@@ -127,7 +127,7 @@ node agent/cli.js buy "Laptop" --price 2500
 node agent/cli.js buy "Laptop" --price 1100
 ```
 
-## 📊 Decision Logic
+## Decision Logic
 
 ```
 referencePrice = median(allSourcePrices)
@@ -137,7 +137,7 @@ if proposedPrice >  referencePrice × 1.10 → ❌ REJECT
 if sellerReputation < threshold            → ❌ REJECT
 ```
 
-## 🎬 Demo Scenarios
+## Demo Scenarios
 
 | Scenario | Price | Market Median | Result |
 |---|---|---|---|
@@ -145,7 +145,7 @@ if sellerReputation < threshold            → ❌ REJECT
 | Fair price laptop | $1,100 | $1,100 | ✅ Approved onchain |
 | Low reputation seller | $1,000 | $1,100 | ❌ Rejected (trust) |
 
-## 📹 Demo Video
+## Demo Video
 
 🔗 [Watch the 3-5 minute demo](https://youtu.be/TODO)
 
@@ -155,7 +155,7 @@ The video demonstrates:
 3. Oracle produces verifiable decision
 4. Smart contract approves or rejects the transaction onchain
 
-## 🗺️ Future Vision
+## Future Vision
 
 - Real marketplace integrations (Amazon, eBay, etc.)
 - Reputation oracle with historical data
@@ -163,10 +163,7 @@ The video demonstrates:
 - Wallet-level spending policies
 - Cross-chain verification
 
-## 👤 Team
 
-**LeventLabs** — [levent@leventlabs.com](mailto:levent@leventlabs.com)
-
-## 📄 License
+## License
 
 MIT
