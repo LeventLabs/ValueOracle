@@ -1,0 +1,48 @@
+name: valueoracle-purchase-guard
+description: Chainlink CRE workflow for ValueOracle - evaluates purchase decisions
+
+triggers:
+  - type: onchain_event
+    config:
+      network: sepolia
+      contractAddress: "${CONTRACT_ADDRESS}"
+      eventSignature: "PurchaseRequested(bytes32,string,uint256,string,address)"
+
+actions:
+  # Step 1: Fetch decision from offchain engine
+  - id: evaluate_purchase
+    type: http_request
+    config:
+      method: POST
+      url: "${DECISION_API_URL}/evaluate"
+      headers:
+        Content-Type: "application/json"
+      body:
+        itemId: "$(trigger.itemId)"
+        price: "$(trigger.proposedPrice)"
+        sellerId: "$(trigger.sellerId)"
+      timeout: 10000
+
+  # Step 2: Write oracle decision back onchain
+  - id: fulfill_decision
+    type: onchain_write
+    config:
+      network: sepolia
+      contractAddress: "${CONTRACT_ADDRESS}"
+      function: "fulfillOracleDecision(bytes32,bool,uint256)"
+      args:
+        - "$(trigger.requestId)"
+        - "$(evaluate_purchase.approved)"
+        - "$(evaluate_purchase.referencePrice)"
+      gasLimit: 200000
+
+# Error handling
+errorHandling:
+  retries: 3
+  retryDelay: 5000
+  onFailure: log
+
+# Monitoring
+monitoring:
+  enabled: true
+  alertOnFailure: true
