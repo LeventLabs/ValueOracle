@@ -7,7 +7,8 @@ const mockPrices = {
   'phone-001': 920,
   'headphones-001': 310,
   'tablet-001': 480,
-  'watch-001': 340
+  'watch-001': 340,
+  'cable-001': 14
 };
 
 async function getPrice(itemId) {
