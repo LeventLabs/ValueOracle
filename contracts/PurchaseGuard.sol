@@ -21,6 +21,7 @@ contract PurchaseGuard {
     mapping(bytes32 => PurchaseRequest) public requests;
     address public oracle;
     address public owner;
+    uint256 private nonce;
 
     event PurchaseRequested(
         bytes32 indexed requestId,
@@ -69,7 +70,7 @@ contract PurchaseGuard {
         string memory sellerId
     ) external returns (bytes32) {
         bytes32 requestId = keccak256(
-            abi.encodePacked(itemId, proposedPrice, sellerId, msg.sender, block.timestamp)
+            abi.encodePacked(itemId, proposedPrice, sellerId, msg.sender, block.timestamp, nonce++)
         );
 
         require(!requests[requestId].fulfilled, "Request already exists");
