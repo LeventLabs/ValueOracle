@@ -155,6 +155,21 @@ The video demonstrates:
 3. Oracle produces verifiable decision
 4. Smart contract approves or rejects the transaction onchain
 
+
+## Why This Matters — The Post-SaaS Agent Economy
+
+AI agents are rapidly commoditizing every SaaS tool. They auto-switch providers, negotiate prices, and collapse 30 dashboards into a single chat. Switching costs are gone. Brand loyalty is gone. Margins are racing to zero.
+
+But there's one thing agents **cannot** automate: **trust**.
+
+An agent can move your database from Supabase to Neon overnight. It can cancel your Stripe and set up a competitor. But when it comes to *spending money* — comparing prices across sources, detecting manipulation, verifying seller reputation — it's flying blind.
+
+**ValueOracle is the missing trust layer for this new economy.**
+
+Just as Stripe's fraud detection gets smarter with every transaction across millions of businesses, ValueOracle builds collective commerce intelligence across every agent decision. More agents → better data → smarter decisions → more agents. That's a moat AI agents can't commoditize.
+
+> In a world where agents automate everything, the infrastructure that makes agents *trustworthy* becomes the most valuable layer of all.
+
 ## Future Vision
 
 - Real marketplace integrations (Amazon, eBay, etc.)
@@ -163,6 +178,9 @@ The video demonstrates:
 - Wallet-level spending policies
 - Cross-chain verification
 
+## Team
+
+**LeventLabs** — [levent@leventlabs.com](mailto:levent@leventlabs.com)
 
 ## License
 
