@@ -61,7 +61,8 @@ function calculateValueScore({ proposedPrice, referencePrice, rating, reviewCoun
   };
 }
 
-function buildReason(approved, breakdown, deviation, seller, productData, valueScore) {
+function buildReason(approved, breakdown, deviation, seller, productData, valueScore, sellerBlocked) {
+  if (sellerBlocked) return `Seller trust critically low (${seller.score.toFixed(2)}/1.0) — blocked`;
   if (approved) return 'Fair price and trusted seller';
   if (breakdown.priceFairness < 50) return `Price ${deviation}% above market median`;
   if (breakdown.sellerTrust < 50) return `Seller trust too low (${seller.score.toFixed(2)}/1.0)`;
@@ -109,10 +110,12 @@ app.post('/evaluate', async (req, res) => {
       sellerScoreVal: seller.score
     });
 
-    const approved = valueScore >= THRESHOLDS.approve;
+    // Hard-cut: reject if seller trust is critically low regardless of score
+    const sellerBlocked = seller.score < 0.4;
+    const approved = !sellerBlocked && valueScore >= THRESHOLDS.approve;
     const verdict = approved ? 'APPROVE' : valueScore >= THRESHOLDS.caution ? 'CAUTION' : 'REJECT';
     const deviation = ((price - referencePrice) / referencePrice * 100).toFixed(1);
-    const reason = buildReason(approved, breakdown, deviation, seller, productData, valueScore);
+    const reason = buildReason(approved, breakdown, deviation, seller, productData, valueScore, sellerBlocked);
 
     res.json({
       approved, verdict, valueScore, referencePrice, reason, breakdown, sources,
