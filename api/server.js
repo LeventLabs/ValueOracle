@@ -100,9 +100,13 @@ app.post('/evaluate', async (req, res) => {
 
     const referencePrice = median(sources.map(s => s.price));
     const productData = marketplaceA.getProductData(itemId);
+    const dealData = marketplaceA.getDealData(itemId);
+
+    // Effective price = proposed - cashback - coupon + shipping
+    const effectivePrice = price - dealData.cashback - dealData.coupon + dealData.shippingFee;
 
     const { valueScore, breakdown } = calculateValueScore({
-      proposedPrice: price,
+      proposedPrice: effectivePrice,
       referencePrice,
       rating: productData.rating,
       reviewCount: productData.reviewCount,
@@ -114,11 +118,13 @@ app.post('/evaluate', async (req, res) => {
     const sellerBlocked = seller.score < 0.4;
     const approved = !sellerBlocked && valueScore >= THRESHOLDS.approve;
     const verdict = approved ? 'APPROVE' : valueScore >= THRESHOLDS.caution ? 'CAUTION' : 'REJECT';
-    const deviation = ((price - referencePrice) / referencePrice * 100).toFixed(1);
+    const deviation = ((effectivePrice - referencePrice) / referencePrice * 100).toFixed(1);
     const reason = buildReason(approved, breakdown, deviation, seller, productData, valueScore, sellerBlocked);
 
     res.json({
       approved, verdict, valueScore, referencePrice, reason, breakdown, sources,
+      effectivePrice: Math.round(effectivePrice),
+      deal: dealData,
       product: { rating: productData.rating, reviewCount: productData.reviewCount, returnRate: productData.returnRate },
       seller: { score: seller.score, totalSales: seller.totalSales }
     });

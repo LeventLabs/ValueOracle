@@ -10,7 +10,8 @@ const scenarios = [
   { name: "Overpriced",        itemId: "laptop-001", price: 2500, sellerId: "seller-42",  expect: false },
   { name: "Untrusted seller",  itemId: "laptop-001", price: 1000, sellerId: "seller-99",  expect: false },
   { name: "Low quality item",  itemId: "cable-001",  price: 25,   sellerId: "seller-200", expect: false },
-  { name: "Good deal",         itemId: "headphones-001", price: 280, sellerId: "seller-100", expect: true }
+  { name: "Good deal",         itemId: "headphones-001", price: 280, sellerId: "seller-100", expect: true },
+  { name: "Cashback saves it", itemId: "phone-001",  price: 950,  sellerId: "seller-42",  expect: true }
 ];
 
 async function evaluate(itemId, price, sellerId) {
@@ -38,7 +39,9 @@ async function run() {
 
       const tag = ok ? 'PASS' : 'FAIL';
       const verdict = d.approved ? 'approved' : 'rejected';
-      console.log(`${tag}  score=${d.valueScore}  ${verdict}  ref=$${d.referencePrice}  "${d.reason}"`);
+      const dealInfo = d.deal && (d.deal.cashback || d.deal.coupon || d.deal.shippingFee)
+        ? `  eff=$${d.effectivePrice}` : '';
+      console.log(`${tag}  score=${d.valueScore}  ${verdict}  ref=$${d.referencePrice}${dealInfo}  "${d.reason}"`);
     } catch (err) {
       console.log(`ERR   ${err.message}`);
     }
