@@ -69,7 +69,7 @@ flowchart LR
 | Component | Technology |
 |---|---|
 | Smart Contract | Solidity (Sepolia) |
-| Contract Address | [`0x04F993073c7BbEA1457Df17255eE4d7B66B95bE6`](https://sepolia.etherscan.io/address/0x04F993073c7BbEA1457Df17255eE4d7B66B95bE6) |
+| Contract Address | [`0x80891AD6Ea08feC97F6D14eb817a20c5652f5777`](https://sepolia.etherscan.io/address/0x80891AD6Ea08feC97F6D14eb817a20c5652f5777) |
 | Oracle Layer | Chainlink CRE |
 | Decision API | Node.js |
 | Agent Trigger | CLI / Script |
