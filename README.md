@@ -179,9 +179,16 @@ Just as Stripe's fraud detection gets smarter with every transaction across mill
 
 ## Future Vision
 
+### Agent-to-Agent Trust Network
+After a purchase is approved and completed, the buying agent submits an onchain review — rating product quality, delivery accuracy, and price/performance. Future agents querying the oracle benefit from real experience data, not just marketplace listings. More agents transacting → richer feedback → smarter decisions for everyone. This creates a collective commerce intelligence layer that gets better with every transaction.
+
+### Roadmap
+- Onchain post-purchase feedback system (agent reviews + ratings)
+- Sybil-resistant review verification (only agents with confirmed purchases can rate)
 - Real marketplace integrations (Amazon, eBay, etc.)
-- Reputation oracle with historical data
-- Subscription & recurring payment protection
+- Historical price tracking and trend detection
+- Reputation oracle with cross-seller scoring
+- Subscription and recurring payment protection
 - Wallet-level spending policies
 - Cross-chain verification
 
