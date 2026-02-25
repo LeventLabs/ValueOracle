@@ -134,6 +134,8 @@ node agent/cli.js buy "Laptop" --price 1100
 ## Decision Logic
 
 ```
+effectivePrice = proposedPrice - cashback - coupon + shippingFee
+
 valueScore = priceFairness × 0.35 + qualitySignal × 0.25 + sellerTrust × 0.25 + valueRatio × 0.15
 
 score >= 70         → ✅ APPROVE
@@ -141,6 +143,8 @@ score 40-69         → ⚠️ CAUTION (rejected)
 score < 40          → ❌ REJECT
 sellerScore < 0.4   → ❌ BLOCKED (regardless of score)
 ```
+
+The engine calculates an effective price by factoring in cashback, coupons, and shipping fees before scoring. This means a slightly overpriced listing with a good coupon can still be approved.
 
 ## Demo Scenarios
 
@@ -151,6 +155,7 @@ sellerScore < 0.4   → ❌ BLOCKED (regardless of score)
 | Untrusted seller | $1,000 | $1,095 | seller-99 (0.30) | 81 | ❌ Blocked (trust) |
 | Low quality item | $25 | $11 | seller-200 (0.15) | 30 | ❌ Blocked (trust) |
 | Good deal | $280 | $295 | seller-100 (0.92) | 95 | ✅ Approved |
+| Cashback saves it | $950 | $847 | seller-42 (0.85) | ~82 | ✅ Approved (eff=$910 after $40 coupon) |
 
 ## Demo Video
 

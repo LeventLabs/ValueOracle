@@ -286,6 +286,13 @@ function renderResult(s, data) {
       '<div class="row"><span class="label">proposed</span><span>$' + s.proposed.toLocaleString() + '</span></div>' +
       '<div class="row"><span class="label">marketMedian</span><span>$' + data.median.toLocaleString() + '</span></div>' +
       '<div class="row"><span class="label">deviation</span><span>' + dev + '%</span></div>' +
+      (data.effectivePrice && data.effectivePrice !== s.proposed ?
+        '<div class="row"><span class="label">effectivePrice</span><span>$' + data.effectivePrice.toLocaleString() + '</span></div>' : '') +
+      (data.deal ?
+        (data.deal.cashback ? '<div class="row"><span class="label">cashback</span><span style="color:var(--green)">-$' + data.deal.cashback + '</span></div>' : '') +
+        (data.deal.coupon ? '<div class="row"><span class="label">coupon</span><span style="color:var(--green)">-$' + data.deal.coupon + '</span></div>' : '') +
+        (data.deal.shippingFee ? '<div class="row"><span class="label">shippingFee</span><span style="color:var(--red)">+$' + data.deal.shippingFee + '</span></div>' : '')
+      : '') +
       '<div class="section-label">Quality</div>' +
       '<div class="row"><span class="label">productRating</span><span>' + data.rating + '</span></div>' +
       '<div class="row"><span class="label">reviewCount</span><span>' + data.reviews.toLocaleString() + '</span></div>' +
@@ -321,6 +328,8 @@ function render() {
           result: apiData.approved ? 'approved' : 'rejected',
           reason: apiData.reason,
           breakdown: apiData.breakdown,
+          effectivePrice: apiData.effectivePrice,
+          deal: apiData.deal,
           live: true
         });
       } else {
