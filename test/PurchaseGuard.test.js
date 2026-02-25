@@ -89,4 +89,58 @@ describe("PurchaseGuard", function () {
         .to.be.revertedWithCustomError(guard, "Unauthorized");
     });
   });
+
+  describe("submitReview", function () {
+    let requestId;
+
+    beforeEach(async function () {
+      const tx = await guard.connect(agent).requestPurchase("laptop-001", 1100, "seller-42");
+      requestId = await extractRequestId(tx);
+      await guard.connect(oracle).fulfillOracleDecision(requestId, true, 1100);
+    });
+
+    it("allows requester to submit review for approved purchase", async function () {
+      await expect(guard.connect(agent).submitReview(requestId, 5, 4, 5, "Great laptop"))
+        .to.emit(guard, "ReviewSubmitted");
+
+      const review = await guard.getReview(requestId);
+      expect(review.qualityRating).to.equal(5);
+      expect(review.deliveryRating).to.equal(4);
+      expect(review.valueRating).to.equal(5);
+      expect(review.reviewer).to.equal(agent.address);
+    });
+
+    it("increments item and seller review counts", async function () {
+      await guard.connect(agent).submitReview(requestId, 4, 4, 4, "Solid");
+      expect(await guard.getItemReviewCount("laptop-001")).to.equal(1);
+      expect(await guard.getSellerReviewCount("seller-42")).to.equal(1);
+    });
+
+    it("reverts if not the original requester", async function () {
+      await expect(guard.connect(owner).submitReview(requestId, 5, 5, 5, "fake"))
+        .to.be.revertedWithCustomError(guard, "Unauthorized");
+    });
+
+    it("reverts for rejected purchases", async function () {
+      const tx2 = await guard.connect(agent).requestPurchase("laptop-001", 2500, "seller-42");
+      const id2 = await extractRequestId(tx2);
+      await guard.connect(oracle).fulfillOracleDecision(id2, false, 1100);
+
+      await expect(guard.connect(agent).submitReview(id2, 5, 5, 5, "nope"))
+        .to.be.revertedWithCustomError(guard, "NotApproved");
+    });
+
+    it("reverts on double review", async function () {
+      await guard.connect(agent).submitReview(requestId, 5, 4, 5, "first");
+      await expect(guard.connect(agent).submitReview(requestId, 3, 3, 3, "second"))
+        .to.be.revertedWithCustomError(guard, "AlreadyReviewed");
+    });
+
+    it("reverts on invalid rating", async function () {
+      await expect(guard.connect(agent).submitReview(requestId, 0, 4, 5, "bad"))
+        .to.be.revertedWithCustomError(guard, "InvalidRating");
+      await expect(guard.connect(agent).submitReview(requestId, 5, 6, 5, "bad"))
+        .to.be.revertedWithCustomError(guard, "InvalidRating");
+    });
+  });
 });
