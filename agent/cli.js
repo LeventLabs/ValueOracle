@@ -4,62 +4,45 @@ const { Command } = require('commander');
 const { ethers } = require('ethers');
 require('dotenv').config();
 
-const program = new Command();
+const ABI = [
+  "function requestPurchase(string itemId, uint256 proposedPrice, string sellerId) returns (bytes32)",
+  "event PurchaseRequested(bytes32 indexed requestId, string itemId, uint256 proposedPrice, string sellerId, address requester)",
+  "event PurchaseApproved(bytes32 indexed requestId, uint256 referencePrice)",
+  "event PurchaseRejected(bytes32 indexed requestId, uint256 referencePrice, string reason)"
+];
 
-program
-  .name('valueoracle-agent')
-  .description('AI Agent CLI for ValueOracle purchase requests')
-  .version('1.0.0');
+function getContract() {
+  const { SEPOLIA_RPC_URL, PRIVATE_KEY, CONTRACT_ADDRESS } = process.env;
+  if (!CONTRACT_ADDRESS) throw new Error('CONTRACT_ADDRESS not set in .env');
+  if (!SEPOLIA_RPC_URL) throw new Error('SEPOLIA_RPC_URL not set in .env');
+  if (!PRIVATE_KEY) throw new Error('PRIVATE_KEY not set in .env');
+
+  const provider = new ethers.JsonRpcProvider(SEPOLIA_RPC_URL);
+  const wallet = new ethers.Wallet(PRIVATE_KEY, provider);
+  return new ethers.Contract(CONTRACT_ADDRESS, ABI, wallet);
+}
+
+const program = new Command();
+program.name('valueoracle-agent').version('1.0.0');
 
 program
   .command('buy')
-  .description('Submit purchase request to ValueOracle')
   .argument('<itemId>', 'Product identifier')
   .option('-p, --price <amount>', 'Proposed price', '1000')
   .option('-s, --seller <id>', 'Seller identifier', 'seller-42')
-  .action(async (itemId, options) => {
+  .action(async (itemId, opts) => {
+    console.log(`\nPurchase request: ${itemId} @ $${opts.price} from ${opts.seller}`);
+
     try {
-      console.log('🤖 AI Agent initiating purchase...\n');
-      console.log(`   Item: ${itemId}`);
-      console.log(`   Price: $${options.price}`);
-      console.log(`   Seller: ${options.seller}\n`);
+      const contract = getContract();
+      const tx = await contract.requestPurchase(itemId, ethers.parseUnits(opts.price, 0), opts.seller);
+      console.log(`tx: ${tx.hash}`);
 
-      if (!process.env.CONTRACT_ADDRESS) {
-        console.error('❌ CONTRACT_ADDRESS not set in .env');
-        process.exit(1);
-      }
-
-      // Connect to contract
-      const provider = new ethers.JsonRpcProvider(process.env.SEPOLIA_RPC_URL);
-      const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-      
-      const abi = [
-        "function requestPurchase(string itemId, uint256 proposedPrice, string sellerId) returns (bytes32)",
-        "event PurchaseRequested(bytes32 indexed requestId, string itemId, uint256 proposedPrice, string sellerId, address requester)",
-        "event PurchaseApproved(bytes32 indexed requestId, uint256 referencePrice)",
-        "event PurchaseRejected(bytes32 indexed requestId, uint256 referencePrice, string reason)"
-      ];
-      
-      const contract = new ethers.Contract(process.env.CONTRACT_ADDRESS, abi, wallet);
-
-      console.log('📡 Submitting to PurchaseGuard contract...');
-      const tx = await contract.requestPurchase(
-        itemId,
-        ethers.parseUnits(options.price, 0),
-        options.seller
-      );
-      
-      console.log(`   Transaction: ${tx.hash}`);
-      console.log('   Waiting for confirmation...\n');
-      
       const receipt = await tx.wait();
-      console.log('✅ Request submitted onchain');
-      console.log('⏳ Waiting for Chainlink CRE oracle response...\n');
-      console.log('   (In production, oracle fulfills automatically)');
-      console.log('   (For demo, run: npm run simulate)\n');
-
-    } catch (error) {
-      console.error('❌ Error:', error.message);
+      console.log(`confirmed in block ${receipt.blockNumber}`);
+      console.log('Waiting for oracle fulfillment...');
+    } catch (err) {
+      console.error(`Failed: ${err.message}`);
       process.exit(1);
     }
   });

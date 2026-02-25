@@ -1,11 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-/**
- * @title PurchaseGuard
- * @notice Smart contract that protects AI agents from overpaying by requiring oracle approval
- * @dev Integrates with Chainlink CRE for offchain value verification
- */
+/// @title PurchaseGuard
+/// @notice Onchain spending guard for autonomous agents. Requires oracle approval before purchase execution.
 contract PurchaseGuard {
     struct PurchaseRequest {
         string itemId;
@@ -19,61 +16,33 @@ contract PurchaseGuard {
     }
 
     mapping(bytes32 => PurchaseRequest) public requests;
+
     address public oracle;
     address public owner;
-    uint256 private nonce;
+    uint256 private _nonce;
 
-    event PurchaseRequested(
-        bytes32 indexed requestId,
-        string itemId,
-        uint256 proposedPrice,
-        string sellerId,
-        address requester
-    );
-    
-    event PurchaseApproved(
-        bytes32 indexed requestId,
-        uint256 referencePrice
-    );
-    
-    event PurchaseRejected(
-        bytes32 indexed requestId,
-        uint256 referencePrice,
-        string reason
-    );
+    event PurchaseRequested(bytes32 indexed requestId, string itemId, uint256 proposedPrice, string sellerId, address requester);
+    event PurchaseApproved(bytes32 indexed requestId, uint256 referencePrice);
+    event PurchaseRejected(bytes32 indexed requestId, uint256 referencePrice, string reason);
 
-    modifier onlyOracle() {
-        require(msg.sender == oracle, "Only oracle can fulfill");
-        _;
-    }
+    error Unauthorized();
+    error AlreadyFulfilled();
 
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Only owner");
-        _;
-    }
+    modifier onlyOracle() { if (msg.sender != oracle) revert Unauthorized(); _; }
+    modifier onlyOwner()  { if (msg.sender != owner)  revert Unauthorized(); _; }
 
     constructor(address _oracle) {
         oracle = _oracle;
         owner = msg.sender;
     }
 
-    /**
-     * @notice Agent submits purchase intent for oracle evaluation
-     * @param itemId Product identifier
-     * @param proposedPrice Price agent is willing to pay (in wei or smallest unit)
-     * @param sellerId Seller identifier
-     * @return requestId Unique request identifier
-     */
+    /// @notice Submit purchase intent for oracle evaluation
     function requestPurchase(
-        string memory itemId,
+        string calldata itemId,
         uint256 proposedPrice,
-        string memory sellerId
-    ) external returns (bytes32) {
-        bytes32 requestId = keccak256(
-            abi.encodePacked(itemId, proposedPrice, sellerId, msg.sender, block.timestamp, nonce++)
-        );
-
-        require(!requests[requestId].fulfilled, "Request already exists");
+        string calldata sellerId
+    ) external returns (bytes32 requestId) {
+        requestId = keccak256(abi.encodePacked(itemId, proposedPrice, sellerId, msg.sender, block.timestamp, _nonce++));
 
         requests[requestId] = PurchaseRequest({
             itemId: itemId,
@@ -87,48 +56,27 @@ contract PurchaseGuard {
         });
 
         emit PurchaseRequested(requestId, itemId, proposedPrice, sellerId, msg.sender);
-        return requestId;
     }
 
-    /**
-     * @notice Oracle fulfills the request with approval decision
-     * @param requestId Request to fulfill
-     * @param approved Whether purchase represents fair value
-     * @param referencePrice Market reference price from oracle
-     */
-    function fulfillOracleDecision(
-        bytes32 requestId,
-        bool approved,
-        uint256 referencePrice
-    ) external onlyOracle {
-        PurchaseRequest storage request = requests[requestId];
-        require(!request.fulfilled, "Already fulfilled");
+    /// @notice Oracle delivers the value verdict
+    function fulfillOracleDecision(bytes32 requestId, bool approved, uint256 referencePrice) external onlyOracle {
+        PurchaseRequest storage req = requests[requestId];
+        if (req.fulfilled) revert AlreadyFulfilled();
 
-        request.fulfilled = true;
-        request.approved = approved;
-        request.referencePrice = referencePrice;
+        req.fulfilled = true;
+        req.approved = approved;
+        req.referencePrice = referencePrice;
 
         if (approved) {
             emit PurchaseApproved(requestId, referencePrice);
         } else {
-            string memory reason = request.proposedPrice > referencePrice * 110 / 100
+            string memory reason = req.proposedPrice > (referencePrice * 110) / 100
                 ? "Price exceeds market value"
                 : "Seller trust score too low";
             emit PurchaseRejected(requestId, referencePrice, reason);
         }
     }
 
-    /**
-     * @notice Update oracle address
-     */
-    function setOracle(address _oracle) external onlyOwner {
-        oracle = _oracle;
-    }
-
-    /**
-     * @notice Get request details
-     */
-    function getRequest(bytes32 requestId) external view returns (PurchaseRequest memory) {
-        return requests[requestId];
-    }
+    function setOracle(address _oracle) external onlyOwner { oracle = _oracle; }
+    function getRequest(bytes32 requestId) external view returns (PurchaseRequest memory) { return requests[requestId]; }
 }

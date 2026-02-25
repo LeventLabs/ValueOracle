@@ -1,17 +1,15 @@
-/**
- * Mock Marketplace A - Simulates price + product quality data source
- */
+// Mock adapter for Marketplace A (primary source — includes product metadata)
 
-const mockPrices = {
-  'laptop-001': 1050,
-  'phone-001': 850,
-  'headphones-001': 280,
-  'tablet-001': 450,
-  'watch-001': 320,
-  'cable-001': 10
+const prices = {
+  'laptop-001': 1049,
+  'phone-001': 847,
+  'headphones-001': 279,
+  'tablet-001': 449,
+  'watch-001': 318,
+  'cable-001': 9
 };
 
-const mockProducts = {
+const products = {
   'laptop-001': { rating: 4.7, reviewCount: 12400, returnRate: 2.1 },
   'phone-001': { rating: 4.5, reviewCount: 31000, returnRate: 1.8 },
   'headphones-001': { rating: 4.6, reviewCount: 8700, returnRate: 3.4 },
@@ -20,15 +18,15 @@ const mockProducts = {
   'cable-001': { rating: 2.8, reviewCount: 140, returnRate: 18.5 }
 };
 
-const defaultProduct = { rating: 3.0, reviewCount: 0, returnRate: 10.0 };
+const DEFAULT_PRODUCT = { rating: 3.0, reviewCount: 0, returnRate: 10.0 };
 
 async function getPrice(itemId) {
-  await new Promise(resolve => setTimeout(resolve, 100));
-  return mockPrices[itemId] || 0;
+  await new Promise(r => setTimeout(r, 80 + Math.random() * 40));
+  return prices[itemId] || 0;
 }
 
 function getProductData(itemId) {
-  return mockProducts[itemId] || defaultProduct;
+  return products[itemId] || DEFAULT_PRODUCT;
 }
 
 module.exports = { getPrice, getProductData };

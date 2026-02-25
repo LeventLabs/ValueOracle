@@ -2,7 +2,7 @@
   "name": "valueoracle",
   "version": "1.0.0",
   "description": "Verifiable commerce oracle for AI agents powered by Chainlink CRE",
-  "main": "index.js",
+  "main": "api/server.js",
   "scripts": {
     "test": "hardhat test",
     "deploy": "hardhat run scripts/deploy.js --network sepolia",
