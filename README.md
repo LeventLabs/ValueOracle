@@ -34,24 +34,27 @@ ValueOracle     → real-world purchase decision
 
 ## Architecture
 
-```
-┌─────────┐     ┌──────────────────┐     ┌─────────────────┐
-│ AI Agent │────▶│ PurchaseGuard.sol│────▶│  Chainlink CRE  │
-└─────────┘     │  (Smart Contract)│     │    Workflow      │
-                └──────────────────┘     └────────┬────────┘
-                         ▲                        │
-                         │                        ▼
-                         │               ┌─────────────────┐
-                         │               │ Offchain Decision│
-                         │               │    Engine        │
-                         │               │                  │
-                         │               │ • Marketplace A  │
-                         │               │ • Marketplace B  │
-                         │               │ • Seller Score   │
-                         │               └────────┬────────┘
-                         │                        │
-                         └────────────────────────┘
-                           Oracle Response (approve/reject)
+```mermaid
+flowchart LR
+    Agent["🤖 AI Agent"]
+    Contract["📜 PurchaseGuard.sol\n(Sepolia)"]
+    CRE["⛓️ Chainlink CRE\nWorkflow"]
+    Engine["⚙️ Decision Engine"]
+    MA["Marketplace A"]
+    MB["Marketplace B"]
+    MC["Marketplace C"]
+    SS["Seller Score"]
+
+    Agent -->|"requestPurchase()"| Contract
+    Contract -->|"PurchaseRequested event"| CRE
+    CRE -->|"POST /evaluate"| Engine
+    Engine --- MA
+    Engine --- MB
+    Engine --- MC
+    Engine --- SS
+    Engine -->|"valueScore + verdict"| CRE
+    CRE -->|"fulfillOracleDecision()"| Contract
+    Contract -->|"✅ Approved / ❌ Rejected"| Agent
 ```
 
 **Flow:**
@@ -66,6 +69,7 @@ ValueOracle     → real-world purchase decision
 | Component | Technology |
 |---|---|
 | Smart Contract | Solidity (Sepolia) |
+| Contract Address | [`0x04F993073c7BbEA1457Df17255eE4d7B66B95bE6`](https://sepolia.etherscan.io/address/0x04F993073c7BbEA1457Df17255eE4d7B66B95bE6) |
 | Oracle Layer | Chainlink CRE |
 | Decision API | Node.js |
 | Agent Trigger | CLI / Script |
@@ -130,20 +134,23 @@ node agent/cli.js buy "Laptop" --price 1100
 ## Decision Logic
 
 ```
-referencePrice = median(allSourcePrices)
+valueScore = priceFairness × 0.35 + qualitySignal × 0.25 + sellerTrust × 0.25 + valueRatio × 0.15
 
-if proposedPrice <= referencePrice × 1.10 → ✅ APPROVE
-if proposedPrice >  referencePrice × 1.10 → ❌ REJECT
-if sellerReputation < threshold            → ❌ REJECT
+score >= 70         → ✅ APPROVE
+score 40-69         → ⚠️ CAUTION (rejected)
+score < 40          → ❌ REJECT
+sellerScore < 0.4   → ❌ BLOCKED (regardless of score)
 ```
 
 ## Demo Scenarios
 
-| Scenario | Price | Market Median | Result |
-|---|---|---|---|
-| Overpriced laptop | $2,500 | $1,100 | ❌ Rejected onchain |
-| Fair price laptop | $1,100 | $1,100 | ✅ Approved onchain |
-| Low reputation seller | $1,000 | $1,100 | ❌ Rejected (trust) |
+| Scenario | Price | Ref Price | Seller | Value Score | Result |
+|---|---|---|---|---|---|
+| Fair purchase | $1,100 | $1,095 | seller-42 (0.85) | 94 | ✅ Approved |
+| Overpriced | $2,500 | $1,095 | seller-42 (0.85) | 66 | ❌ Rejected (price) |
+| Untrusted seller | $1,000 | $1,095 | seller-99 (0.30) | 81 | ❌ Blocked (trust) |
+| Low quality item | $25 | $11 | seller-200 (0.15) | 30 | ❌ Blocked (trust) |
+| Good deal | $280 | $295 | seller-100 (0.92) | 95 | ✅ Approved |
 
 ## Demo Video
 
