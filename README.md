@@ -148,14 +148,14 @@ The engine calculates an effective price by factoring in cashback, coupons, and 
 
 ## Demo Scenarios
 
-| Scenario | Price | Ref Price | Seller | Value Score | Result |
-|---|---|---|---|---|---|
-| Fair purchase | $1,100 | $1,095 | seller-42 (0.85) | 94 | ✅ Approved |
-| Overpriced | $2,500 | $1,095 | seller-42 (0.85) | 66 | ❌ Rejected (price) |
-| Untrusted seller | $1,000 | $1,095 | seller-99 (0.30) | 81 | ❌ Blocked (trust) |
-| Low quality item | $25 | $11 | seller-200 (0.15) | 30 | ❌ Blocked (trust) |
-| Good deal | $280 | $295 | seller-100 (0.92) | 95 | ✅ Approved |
-| Cashback saves it | $950 | $847 | seller-42 (0.85) | ~82 | ✅ Approved (eff=$910 after $40 coupon) |
+| Scenario | Price | Eff. Price | Ref Price | Seller | Reviews | Score | Result |
+|---|---|---|---|---|---|---|---|
+| Fair purchase | $1,100 | $1,048 | $1,095 | seller-42 (0.85) | 3 (4.67/5) | 95 | ✅ Approved |
+| Overpriced | $2,500 | $2,448 | $1,095 | seller-42 (0.85) | 3 (4.67/5) | 68 | ❌ Rejected (price) |
+| Untrusted seller | $1,000 | $948 | $1,095 | seller-99 (0.30) | 1 (1.33/5) | 81 | ❌ Blocked (trust) |
+| Low quality item | $25 | $30 | $11 | seller-200 (0.15) | — | 27 | ❌ Blocked (trust) |
+| Good deal | $280 | $274 | $295 | seller-100 (0.92) | 2 (4.50/5) | 95 | ✅ Approved |
+| Cashback saves it | $950 | $910 | $899 | seller-42 (0.85) | 3 (4.67/5) | 93 | ✅ Approved |
 
 ## Demo Video
 
