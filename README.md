@@ -4,7 +4,7 @@
 
 ValueOracle is a verifiable commerce oracle powered by Chainlink CRE that protects autonomous agents from overpaying, fraud, and price manipulation. Think of Chainlink price feeds — but for real-world product decisions.
 
-> Built for [Convergence: A Chainlink Hackathon](https://chain.link/hackathon) — CRE & AI Track
+> Built for [Convergence: A Chainlink Hackathon](https://chain.link/hackathon) — CRE & AI + Privacy Tracks
 
 ---
 
@@ -71,6 +71,7 @@ flowchart LR
 | Smart Contract | Solidity (Sepolia) |
 | Contract Address | [`0x80891AD6Ea08feC97F6D14eb817a20c5652f5777`](https://sepolia.etherscan.io/address/0x80891AD6Ea08feC97F6D14eb817a20c5652f5777) |
 | Oracle Layer | Chainlink CRE |
+| Privacy | Confidential HTTP + Commit-Reveal |
 | Decision API | Node.js |
 | Agent Trigger | CLI / Script |
 | Data Sources | Mock marketplace APIs |
@@ -80,19 +81,21 @@ flowchart LR
 ```
 ValueOracle/
 ├── contracts/
-│   └── PurchaseGuard.sol          # ← Chainlink oracle consumer
+│   └── PurchaseGuard.sol          # ← Chainlink oracle consumer (standard + confidential)
 ├── cre/
-│   └── workflow.yaml              # ← Chainlink CRE workflow definition
+│   └── workflow.yaml              # ← Chainlink CRE workflow (HTTP + Confidential HTTP)
 ├── api/
 │   ├── server.js                  # Decision engine API
 │   └── sources/                   # Marketplace data adapters
 ├── agent/
-│   └── cli.js                     # Demo agent trigger
+│   └── cli.js                     # Agent CLI (buy, buy-private, reveal, review)
 ├── scripts/
 │   ├── deploy.js                  # Contract deployment
 │   └── simulate.js                # End-to-end simulation
-└── test/
-    └── PurchaseGuard.test.js
+├── test/
+│   └── PurchaseGuard.test.js      # 20 tests
+└── website/
+    └── index.html                 # Live demo page
 ```
 
 ## Chainlink Integration Files
@@ -110,7 +113,7 @@ ValueOracle/
 
 ```bash
 # Clone
-git clone https://github.com/leventlabs/ValueOracle.git
+git clone https://github.com/LeventLabs/ValueOracle.git
 cd ValueOracle
 
 # Install dependencies
@@ -123,13 +126,16 @@ npx hardhat run scripts/deploy.js --network sepolia
 node api/server.js
 
 # Run CRE workflow simulation
-cre simulate cre/workflow.yaml
-
-# Demo: Agent attempts overpriced purchase (rejected)
-node agent/cli.js buy "Laptop" --price 2500
+node scripts/simulate.js
 
 # Demo: Agent attempts fair purchase (approved)
-node agent/cli.js buy "Laptop" --price 1100
+node agent/cli.js buy laptop-001 --price 1100 --seller seller-42
+
+# Demo: Agent attempts overpriced purchase (rejected)
+node agent/cli.js buy laptop-001 --price 2500 --seller seller-42
+
+# Demo: Confidential purchase (privacy mode)
+node agent/cli.js buy-private laptop-001 --price 1100 --seller seller-42
 ```
 
 ## Decision Logic
@@ -221,8 +227,8 @@ After a purchase is approved and completed, the buying agent submits an onchain 
 The decision engine blends agent review data into seller trust scores (up to 30% weight based on review count). Future agents querying the oracle benefit from real experience data, not just marketplace listings. More agents transacting → richer feedback → smarter decisions for everyone.
 
 ```
-POST /reviews/seller/:sellerId   → review list + stats
-POST /reviews/item/:itemId       → item-specific reviews
+GET /reviews/seller/:sellerId   → review list + stats
+GET /reviews/item/:itemId       → item-specific reviews
 ```
 
 Onchain functions:
