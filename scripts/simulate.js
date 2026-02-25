@@ -41,10 +41,23 @@ async function run() {
       const verdict = d.approved ? 'approved' : 'rejected';
       const dealInfo = d.deal && (d.deal.cashback || d.deal.coupon || d.deal.shippingFee)
         ? `  eff=$${d.effectivePrice}` : '';
-      console.log(`${tag}  score=${d.valueScore}  ${verdict}  ref=$${d.referencePrice}${dealInfo}  "${d.reason}"`);
+      const reviewInfo = d.seller.reviewStats
+        ? `  reviews=${d.seller.reviewStats.count}(${d.seller.reviewStats.overall}/5)` : '';
+      console.log(`${tag}  score=${d.valueScore}  ${verdict}  ref=$${d.referencePrice}${dealInfo}${reviewInfo}  "${d.reason}"`);
     } catch (err) {
       console.log(`ERR   ${err.message}`);
     }
+  }
+
+  // Review API check
+  console.log('\nReview API:');
+  try {
+    const sellerRes = await fetch(`${API}/reviews/seller/seller-42`).then(r => r.json());
+    const itemRes = await fetch(`${API}/reviews/item/laptop-001`).then(r => r.json());
+    console.log(`  seller-42: ${sellerRes.reviews.length} reviews, avg ${sellerRes.stats.overall}/5`);
+    console.log(`  laptop-001: ${itemRes.reviews.length} reviews`);
+  } catch (err) {
+    console.log(`  ERR: ${err.message}`);
   }
 
   console.log(`\n${passed}/${scenarios.length} passed`);

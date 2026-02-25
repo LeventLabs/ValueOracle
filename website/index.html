@@ -299,6 +299,8 @@ function renderResult(s, data) {
       '<div class="row"><span class="label">returnRate</span><span>' + data.returnRate + '%</span></div>' +
       '<div class="section-label">Trust</div>' +
       '<div class="row"><span class="label">sellerScore</span><span>' + data.seller + '/5.0</span></div>' +
+      (data.reviewStats ?
+        '<div class="row"><span class="label">agentReviews</span><span>' + data.reviewStats.count + ' reviews (' + data.reviewStats.overall + '/5)</span></div>' : '') +
       '<hr>' +
       '<div class="row"><span class="label">verdict</span><span style="text-align:right;max-width:60%">' + data.reason + '</span></div>' +
     '</div>';
@@ -330,6 +332,7 @@ function render() {
           breakdown: apiData.breakdown,
           effectivePrice: apiData.effectivePrice,
           deal: apiData.deal,
+          reviewStats: apiData.seller.reviewStats,
           live: true
         });
       } else {

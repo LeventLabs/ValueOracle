@@ -126,12 +126,23 @@ app.post('/evaluate', async (req, res) => {
       effectivePrice: Math.round(effectivePrice),
       deal: dealData,
       product: { rating: productData.rating, reviewCount: productData.reviewCount, returnRate: productData.returnRate },
-      seller: { score: seller.score, totalSales: seller.totalSales }
+      seller: { score: seller.score, totalSales: seller.totalSales, reviewStats: seller.reviewStats || null }
     });
   } catch (err) {
     console.error('POST /evaluate failed:', err.message);
     res.status(500).json({ error: 'Internal server error' });
   }
+});
+
+app.get('/reviews/seller/:sellerId', async (_req, res) => {
+  const reviews = sellerScore.getSellerReviews(_req.params.sellerId);
+  const stats = sellerScore.getReviewStats(_req.params.sellerId);
+  res.json({ sellerId: _req.params.sellerId, reviews, stats });
+});
+
+app.get('/reviews/item/:itemId', (_req, res) => {
+  const reviews = sellerScore.getItemReviews(_req.params.itemId);
+  res.json({ itemId: _req.params.itemId, reviews });
 });
 
 app.get('/health', (_req, res) => {

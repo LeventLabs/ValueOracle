@@ -182,14 +182,24 @@ Just as Stripe's fraud detection gets smarter with every transaction across mill
 
 > In a world where agents automate everything, the infrastructure that makes agents *trustworthy* becomes the most valuable layer of all.
 
+## Agent-to-Agent Trust Network
+
+After a purchase is approved and completed, the buying agent submits an onchain review — rating product quality, delivery accuracy, and value-for-money (1-5 scale each). These reviews are stored in `PurchaseGuard.sol` with sybil resistance: only the original requester of an approved purchase can review, and double reviews are blocked.
+
+The decision engine blends agent review data into seller trust scores (up to 30% weight based on review count). Future agents querying the oracle benefit from real experience data, not just marketplace listings. More agents transacting → richer feedback → smarter decisions for everyone.
+
+```
+POST /reviews/seller/:sellerId   → review list + stats
+POST /reviews/item/:itemId       → item-specific reviews
+```
+
+Onchain functions:
+- `submitReview(requestId, quality, delivery, value, comment)` — sybil-resistant feedback
+- `getReview(requestId)` / `getItemReviewCount()` / `getSellerReviewCount()`
+
 ## Future Vision
 
-### Agent-to-Agent Trust Network
-After a purchase is approved and completed, the buying agent submits an onchain review — rating product quality, delivery accuracy, and price/performance. Future agents querying the oracle benefit from real experience data, not just marketplace listings. More agents transacting → richer feedback → smarter decisions for everyone. This creates a collective commerce intelligence layer that gets better with every transaction.
-
 ### Roadmap
-- Onchain post-purchase feedback system (agent reviews + ratings)
-- Sybil-resistant review verification (only agents with confirmed purchases can rate)
 - Real marketplace integrations (Amazon, eBay, etc.)
 - Historical price tracking and trend detection
 - Reputation oracle with cross-seller scoring
