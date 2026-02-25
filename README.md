@@ -43,18 +43,18 @@ flowchart LR
     MA["Marketplace A"]
     MB["Marketplace B"]
     MC["Marketplace C"]
-    SS["Seller Score"]
+    SS["Seller Score\n+ Agent Reviews"]
 
-    Agent -->|"requestPurchase()"| Contract
-    Contract -->|"PurchaseRequested event"| CRE
-    CRE -->|"POST /evaluate"| Engine
+    Agent -->|"requestPurchase()\nor requestConfidentialPurchase(hash)"| Contract
+    Contract -->|"event"| CRE
+    CRE -->|"Confidential HTTP\n(encrypted in enclave)"| Engine
     Engine --- MA
     Engine --- MB
     Engine --- MC
     Engine --- SS
     Engine -->|"valueScore + verdict"| CRE
-    CRE -->|"fulfillOracleDecision()"| Contract
-    Contract -->|"✅ Approved / ❌ Rejected"| Agent
+    CRE -->|"fulfillDecision()"| Contract
+    Contract -->|"✅ / ❌"| Agent
 ```
 
 **Flow:**
@@ -101,9 +101,10 @@ ValueOracle/
 
 | File | Purpose |
 |---|---|
-| [`contracts/PurchaseGuard.sol`](./contracts/PurchaseGuard.sol) | Smart contract receiving oracle decisions |
-| [`cre/workflow.yaml`](./cre/workflow.yaml) | CRE workflow definition — triggers on events, fetches data, returns decision |
+| [`contracts/PurchaseGuard.sol`](./contracts/PurchaseGuard.sol) | Smart contract with standard + confidential purchase modes |
+| [`cre/workflow.yaml`](./cre/workflow.yaml) | CRE workflow — standard HTTP + Confidential HTTP flows |
 | [`scripts/simulate.js`](./scripts/simulate.js) | CRE CLI simulation script |
+| [`api/server.js`](./api/server.js) | Decision engine with `/evaluate` and `/evaluate-confidential` endpoints |
 
 ## Quick Start
 
@@ -181,6 +182,37 @@ An agent can move your database from Supabase to Neon overnight. It can cancel y
 Just as Stripe's fraud detection gets smarter with every transaction across millions of businesses, ValueOracle builds collective commerce intelligence across every agent decision. More agents → better data → smarter decisions → more agents. That's a moat AI agents can't commoditize.
 
 > In a world where agents automate everything, the infrastructure that makes agents *trustworthy* becomes the most valuable layer of all.
+
+## Privacy Layer
+
+ValueOracle supports confidential purchases using Chainlink Confidential HTTP and a commit-reveal pattern. This prevents competing agents from front-running purchase decisions.
+
+**Why privacy matters in agent commerce:**
+- Competing agents can monitor `PurchaseRequested` events and front-run deals
+- Marketplace API keys exposed onchain = security risk
+- Seller manipulation: if sellers see incoming purchase intents, they can raise prices
+
+**How it works:**
+
+```
+Standard:  Agent → itemId + price + sellerId → onchain (public) → oracle evaluates
+Private:   Agent → keccak256(itemId, price, sellerId, salt) → onchain (only hash visible)
+                 → plaintext sent via Confidential HTTP to CRE enclave → oracle evaluates
+                 → only approve/reject written onchain — no purchase details exposed
+```
+
+Onchain, only the commitment hash and the final verdict are visible. The CRE workflow uses Confidential HTTP to fetch marketplace data with encrypted API credentials inside a secure enclave. Neither the node operators nor onchain observers can see what the agent is buying, at what price, or from which seller.
+
+After fulfillment, the agent can optionally reveal the purchase details onchain (commit-reveal pattern) for transparency or review purposes.
+
+**Confidential CLI usage:**
+```bash
+# Private purchase — only hash goes onchain
+node agent/cli.js buy-private laptop-001 --price 1100 --seller seller-42
+
+# Optional: reveal after fulfillment
+node agent/cli.js reveal <requestId> laptop-001 --price 1100 --seller seller-42 --salt <salt>
+```
 
 ## Agent-to-Agent Trust Network
 

@@ -134,6 +134,66 @@ app.post('/evaluate', async (req, res) => {
   }
 });
 
+// Confidential evaluation — receives plaintext offchain via Confidential HTTP.
+// In production, this runs inside a CRE secure enclave. The intentHash links
+// the offchain evaluation to the onchain commitment without revealing purchase details.
+app.post('/evaluate-confidential', async (req, res) => {
+  try {
+    const { itemId, price, sellerId, intentHash } = req.body;
+
+    if (!itemId || price === undefined || !sellerId || !intentHash) {
+      return res.status(400).json({ error: 'Missing fields: itemId, price, sellerId, intentHash' });
+    }
+
+    const [priceA, priceB, priceC, seller] = await Promise.all([
+      marketplaceA.getPrice(itemId),
+      marketplaceB.getPrice(itemId),
+      marketplaceC.getPrice(itemId),
+      sellerScore.getScore(sellerId)
+    ]);
+
+    const sources = [
+      { name: 'marketplaceA', price: priceA },
+      { name: 'marketplaceB', price: priceB },
+      { name: 'marketplaceC', price: priceC }
+    ].filter(s => s.price > 0);
+
+    if (sources.length === 0) {
+      return res.status(404).json({ error: 'Item not found' });
+    }
+
+    const referencePrice = median(sources.map(s => s.price));
+    const productData = marketplaceA.getProductData(itemId);
+    const dealData = marketplaceA.getDealData(itemId);
+    const effectivePrice = price - dealData.cashback - dealData.coupon + dealData.shippingFee;
+
+    const { valueScore, breakdown } = calculateValueScore({
+      proposedPrice: effectivePrice,
+      referencePrice,
+      rating: productData.rating,
+      reviewCount: productData.reviewCount,
+      returnRate: productData.returnRate,
+      sellerScoreVal: seller.score
+    });
+
+    const sellerBlocked = seller.score < 0.4;
+    const approved = !sellerBlocked && valueScore >= THRESHOLDS.approve;
+    const verdict = approved ? 'APPROVE' : valueScore >= THRESHOLDS.caution ? 'CAUTION' : 'REJECT';
+
+    // Response is encrypted in transit via Confidential HTTP — only the oracle enclave sees it.
+    // The onchain fulfillment only writes: (requestId, approved, referencePrice) — no purchase details.
+    res.json({
+      confidential: true,
+      intentHash,
+      approved, verdict, valueScore, referencePrice, breakdown,
+      effectivePrice: Math.round(effectivePrice)
+    });
+  } catch (err) {
+    console.error('POST /evaluate-confidential failed:', err.message);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 app.get('/reviews/seller/:sellerId', async (_req, res) => {
   const reviews = sellerScore.getSellerReviews(_req.params.sellerId);
   const stats = sellerScore.getReviewStats(_req.params.sellerId);

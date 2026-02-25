@@ -1,17 +1,32 @@
 name: valueoracle-purchase-guard
-description: Chainlink CRE workflow for ValueOracle - evaluates purchase decisions
+description: >
+  Chainlink CRE workflow for ValueOracle.
+  Supports both standard and confidential purchase evaluation.
+  Confidential mode uses Confidential HTTP to keep purchase intent private.
 
 triggers:
+  # Standard purchase — public intent
   - type: onchain_event
+    id: standard_purchase
     config:
       network: sepolia
       contractAddress: "${CONTRACT_ADDRESS}"
       eventSignature: "PurchaseRequested(bytes32,string,uint256,string,address)"
 
+  # Confidential purchase — only commitment hash is onchain
+  - type: onchain_event
+    id: confidential_purchase
+    config:
+      network: sepolia
+      contractAddress: "${CONTRACT_ADDRESS}"
+      eventSignature: "ConfidentialPurchaseRequested(bytes32,bytes32,address)"
+
 actions:
-  # Step 1: Fetch decision from offchain engine
+  # ── Standard flow ──────────────────────────────────────────
+
   - id: evaluate_purchase
     type: http_request
+    trigger: standard_purchase
     config:
       method: POST
       url: "${DECISION_API_URL}/evaluate"
@@ -23,9 +38,10 @@ actions:
         sellerId: "$(trigger.sellerId)"
       timeout: 10000
 
-  # Step 2: Write oracle decision back onchain
   - id: fulfill_decision
     type: onchain_write
+    trigger: standard_purchase
+    depends_on: evaluate_purchase
     config:
       network: sepolia
       contractAddress: "${CONTRACT_ADDRESS}"
@@ -36,13 +52,56 @@ actions:
         - "$(evaluate_purchase.referencePrice)"
       gasLimit: 200000
 
-# Error handling
+  # ── Confidential flow ─────────────────────────────────────
+  # Uses Confidential HTTP: API credentials and purchase details
+  # execute inside a secure enclave. Neither the marketplace API keys
+  # nor the item/price/seller data appear onchain or in node logs.
+
+  - id: evaluate_confidential
+    type: confidential_http_request
+    trigger: confidential_purchase
+    config:
+      method: POST
+      url: "${DECISION_API_URL}/evaluate-confidential"
+      headers:
+        Content-Type: "application/json"
+        Authorization: "Bearer ${secrets.MARKETPLACE_API_KEY}"
+      body:
+        intentHash: "$(trigger.intentHash)"
+        # Plaintext purchase details are sent offchain via encrypted channel.
+        # The agent submits these to the CRE node directly (not onchain).
+        itemId: "$(confidential_input.itemId)"
+        price: "$(confidential_input.price)"
+        sellerId: "$(confidential_input.sellerId)"
+      timeout: 10000
+      encryptResponse: true
+
+  - id: fulfill_confidential
+    type: onchain_write
+    trigger: confidential_purchase
+    depends_on: evaluate_confidential
+    config:
+      network: sepolia
+      contractAddress: "${CONTRACT_ADDRESS}"
+      function: "fulfillConfidentialDecision(bytes32,bool,uint256)"
+      args:
+        - "$(trigger.requestId)"
+        - "$(evaluate_confidential.approved)"
+        - "$(evaluate_confidential.referencePrice)"
+      gasLimit: 200000
+
+# Secrets managed via CRE Vault DON (threshold-encrypted, no single node can access)
+secrets:
+  - id: MARKETPLACE_API_KEY
+    description: "API key for authenticated marketplace data access"
+  - id: DECISION_API_KEY
+    description: "Internal auth token for decision engine"
+
 errorHandling:
   retries: 3
   retryDelay: 5000
   onFailure: log
 
-# Monitoring
 monitoring:
   enabled: true
   alertOnFailure: true
