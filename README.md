@@ -83,7 +83,12 @@ ValueOracle/
 ├── contracts/
 │   └── PurchaseGuard.sol          # ← Chainlink oracle consumer (standard + confidential)
 ├── cre/
-│   └── workflow.yaml              # ← Chainlink CRE workflow (HTTP + Confidential HTTP)
+│   └── workflow.yaml              # ← CRE workflow definition (HTTP + Confidential HTTP)
+├── valueoracle-cre/
+│   └── purchase-guard/
+│       ├── main.ts                # ← CRE TypeScript workflow (HTTPClient + consensus)
+│       ├── config.staging.json    # Workflow config (schedule, API URL)
+│       └── workflow.yaml          # CRE CLI target settings
 ├── api/
 │   ├── server.js                  # Decision engine API
 │   └── sources/                   # Marketplace data adapters
@@ -91,7 +96,7 @@ ValueOracle/
 │   └── cli.js                     # Agent CLI (buy, buy-private, reveal, review)
 ├── scripts/
 │   ├── deploy.js                  # Contract deployment
-│   └── simulate.js                # End-to-end simulation
+│   └── simulate.js                # End-to-end API simulation (6 scenarios)
 ├── test/
 │   └── PurchaseGuard.test.js      # 20 tests
 └── website/
@@ -105,9 +110,11 @@ ValueOracle/
 | File | Purpose |
 |---|---|
 | [`contracts/PurchaseGuard.sol`](./contracts/PurchaseGuard.sol) | Smart contract with standard + confidential purchase modes |
-| [`cre/workflow.yaml`](./cre/workflow.yaml) | CRE workflow — standard HTTP + Confidential HTTP flows |
-| [`scripts/simulate.js`](./scripts/simulate.js) | CRE CLI simulation script |
+| [`valueoracle-cre/purchase-guard/main.ts`](./valueoracle-cre/purchase-guard/main.ts) | CRE TypeScript workflow — HTTPClient POST to decision engine with consensus |
+| [`cre/workflow.yaml`](./cre/workflow.yaml) | CRE workflow definition — standard HTTP + Confidential HTTP flows |
+| [`valueoracle-cre/purchase-guard/workflow.yaml`](./valueoracle-cre/purchase-guard/workflow.yaml) | CRE CLI workflow settings (staging/production targets) |
 | [`api/server.js`](./api/server.js) | Decision engine with `/evaluate` and `/evaluate-confidential` endpoints |
+| [`scripts/simulate.js`](./scripts/simulate.js) | End-to-end API simulation (6 scenarios) |
 
 ## Quick Start
 
@@ -125,8 +132,14 @@ npx hardhat run scripts/deploy.js --network sepolia
 # Start decision API
 node api/server.js
 
-# Run CRE workflow simulation
+# Run end-to-end API simulation (6 scenarios)
 node scripts/simulate.js
+
+# Run CRE CLI workflow simulation (requires CRE CLI + Bun)
+cd valueoracle-cre
+bun install --cwd ./purchase-guard
+cre workflow simulate purchase-guard --target staging-settings
+cd ..
 
 # Demo: Agent attempts fair purchase (approved)
 node agent/cli.js buy laptop-001 --price 1100 --seller seller-42
@@ -163,6 +176,17 @@ The engine calculates an effective price by factoring in cashback, coupons, and 
 | Low quality item | $25 | $30 | $11 | seller-200 (0.15) | — | 27 | ❌ Blocked (trust) |
 | Good deal | $280 | $274 | $295 | seller-100 (0.92) | 2 (4.50/5) | 95 | ✅ Approved |
 | Cashback saves it | $950 | $910 | $899 | seller-42 (0.85) | 3 (4.67/5) | 93 | ✅ Approved |
+
+## CRE Workflow Simulation
+
+```
+$ cre workflow simulate purchase-guard --target staging-settings
+
+✓ Workflow compiled
+[USER LOG] ValueOracle purchase evaluation triggered
+[USER LOG] Purchase evaluation complete: verdict=APPROVE | score=95 | ref=$1095 | eff=$1048 | reason="Fair price and trusted seller"
+✓ Workflow Simulation Result: "APPROVE: score 95/100"
+```
 
 ## Demo Video
 
@@ -247,7 +271,7 @@ Onchain functions:
 
 ## Team
 
-**LeventLabs** — [levent@leventlabs.com](mailto:levent@leventlabs.com)
+**LeventLabs** — [leventlabs.com](https://leventlabs.com)
 
 ## License
 
