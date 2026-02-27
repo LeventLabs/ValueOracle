@@ -38,7 +38,8 @@ Thumbs.db
 .classpath
 .c9/
 *.sublime-workspace
-/levi
+levi/
+.kiro/
 
 # Build outputs
 build/
