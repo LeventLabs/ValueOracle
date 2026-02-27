@@ -179,12 +179,15 @@ The engine calculates an effective price by factoring in cashback, coupons, and 
 
 ## CRE Workflow Simulation
 
+The workflow uses `EVMLogTrigger` to listen for `PurchaseRequested` events on Sepolia. When triggered, it fetches marketplace data via HTTP POST and returns a verifiable decision.
+
 ```
-$ cre workflow simulate purchase-guard --target staging-settings
+$ cre workflow simulate purchase-guard --non-interactive --trigger-index 0 \
+  --evm-tx-hash 0x6ea215fd...da489e --evm-event-index 0 --target staging-settings
 
 ✓ Workflow compiled
-[USER LOG] ValueOracle purchase evaluation triggered
-[USER LOG] Purchase evaluation complete: verdict=APPROVE | score=95 | ref=$1095 | eff=$1048 | reason="Fair price and trusted seller"
+[USER LOG] Purchase request detected: requestId=0xf18a46c3... item=laptop-001 price=$1100 seller=seller-42
+[USER LOG] Purchase evaluation complete: requestId=0xf18a46c3... | verdict=APPROVE | score=95 | ref=$1095 | eff=$1048 | reason="Fair price and trusted seller"
 ✓ Workflow Simulation Result: "APPROVE: score 95/100"
 ```
 

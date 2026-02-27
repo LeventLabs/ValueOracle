@@ -152,10 +152,10 @@ footer a{color:var(--al);transition:color .2s}footer a:hover{color:#fff}
 <h2>CRE Workflow Simulation</h2>
 <p class="sub">Real output from Chainlink CRE CLI &mdash; workflow compiled and simulated locally</p>
 <div class="term">
-<div class="p">$ cre workflow simulate purchase-guard --target staging-settings</div>
+<div class="p">$ cre workflow simulate purchase-guard --evm-tx-hash 0x6ea2...489e --evm-event-index 0</div>
 <br>
 <div class="ok">&#10003; Workflow compiled</div>
-<div class="i">[USER LOG] ValueOracle purchase evaluation triggered</div>
+<div class="i">[USER LOG] Purchase request detected: requestId=0xf18a46c3... item=laptop-001 price=$1100 seller=seller-42</div>
 <div class="i">[USER LOG] Purchase evaluation complete: verdict=APPROVE | score=95 | ref=$1095 | eff=$1048 | reason="Fair price and trusted seller"</div>
 <div class="ok">&#10003; Workflow Simulation Result: "APPROVE: score 95/100"</div>
 </div>
