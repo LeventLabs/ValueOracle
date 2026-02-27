@@ -212,7 +212,7 @@ footer a{color:var(--al);transition:color .2s}footer a:hover{color:#fff}
 <div style="font-size:.75rem">Built for Convergence &mdash; Chainlink Hackathon 2025</div>
 </footer>
 <script>
-const API='http://localhost:3000';
+const API=window.location.hostname==='localhost'?'http://localhost:3000':'https://valueoracle-api.onrender.com';
 const scenarios=[
 {name:'Fair Purchase',itemId:'laptop-001',price:1100,sellerId:'seller-42',fallback:{approved:true,verdict:'APPROVE',valueScore:95,referencePrice:1095,effectivePrice:1048,reason:'Fair price and trusted seller',deal:{cashback:52,coupon:0,shippingFee:0},breakdown:{priceFairness:100,qualitySignal:87,sellerTrust:85,valueRatio:100},seller:{score:0.85},product:{rating:4.7,reviewCount:12400,returnRate:2.1}}},
 {name:'Overpriced',itemId:'laptop-001',price:2500,sellerId:'seller-42',fallback:{approved:false,verdict:'CAUTION',valueScore:68,referencePrice:1095,effectivePrice:2448,reason:'Price 123.6% above market median',deal:{cashback:52,coupon:0,shippingFee:0},breakdown:{priceFairness:45,qualitySignal:87,sellerTrust:85,valueRatio:38},seller:{score:0.85},product:{rating:4.7,reviewCount:12400,returnRate:2.1}}},

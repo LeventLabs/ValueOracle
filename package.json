@@ -4,6 +4,7 @@
   "description": "Verifiable commerce oracle for AI agents powered by Chainlink CRE",
   "main": "api/server.js",
   "scripts": {
+    "start": "node api/server.js",
     "test": "hardhat test",
     "deploy": "hardhat run scripts/deploy.js --network sepolia",
     "api": "node api/server.js",
