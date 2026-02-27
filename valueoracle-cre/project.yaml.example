@@ -1,0 +1,12 @@
+# Copy this file to project.yaml and fill in your RPC URL
+# cp project.yaml.example project.yaml
+
+staging-settings:
+  rpcs:
+    - chain-name: ethereum-testnet-sepolia
+      url: https://sepolia.infura.io/v3/YOUR_INFURA_KEY
+
+production-settings:
+  rpcs:
+    - chain-name: ethereum-testnet-sepolia
+      url: https://sepolia.infura.io/v3/YOUR_INFURA_KEY
