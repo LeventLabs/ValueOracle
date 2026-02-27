@@ -138,7 +138,8 @@ node scripts/simulate.js
 # Run CRE CLI workflow simulation (requires CRE CLI + Bun)
 cd valueoracle-cre
 bun install --cwd ./purchase-guard
-cre workflow simulate purchase-guard --target staging-settings
+cre workflow simulate purchase-guard --non-interactive --trigger-index 0 \
+  --evm-tx-hash <TX_HASH> --evm-event-index 0 --target staging-settings
 cd ..
 
 # Demo: Agent attempts fair purchase (approved)
@@ -170,12 +171,12 @@ The engine calculates an effective price by factoring in cashback, coupons, and 
 
 | Scenario | Price | Eff. Price | Ref Price | Seller | Reviews | Score | Result |
 |---|---|---|---|---|---|---|---|
-| Fair purchase | $1,100 | $1,048 | $1,095 | seller-42 (0.85) | 3 (4.67/5) | 95 | ✅ Approved |
-| Overpriced | $2,500 | $2,448 | $1,095 | seller-42 (0.85) | 3 (4.67/5) | 68 | ❌ Rejected (price) |
+| Fair purchase | $1,100 | $1,048 | $1,095 | seller-42 (0.88) | 3 (4.67/5) | 95 | ✅ Approved |
+| Overpriced | $2,500 | $2,448 | $1,095 | seller-42 (0.88) | 3 (4.67/5) | 68 | ❌ Rejected (price) |
 | Untrusted seller | $1,000 | $948 | $1,095 | seller-99 (0.30) | 1 (1.33/5) | 81 | ❌ Blocked (trust) |
 | Low quality item | $25 | $30 | $11 | seller-200 (0.15) | — | 27 | ❌ Blocked (trust) |
 | Good deal | $280 | $274 | $295 | seller-100 (0.92) | 2 (4.50/5) | 95 | ✅ Approved |
-| Cashback saves it | $950 | $910 | $899 | seller-42 (0.85) | 3 (4.67/5) | 93 | ✅ Approved |
+| Coupon saves it | $950 | $910 | $899 | seller-42 (0.88) | 3 (4.67/5) | 93 | ✅ Approved |
 
 ## CRE Workflow Simulation
 
@@ -193,7 +194,7 @@ $ cre workflow simulate purchase-guard --non-interactive --trigger-index 0 \
 
 ## Demo Video
 
-🔗 [Watch the 3-5 minute demo](https://youtu.be/TODO)
+[Watch the 3-5 minute demo](https://youtu.be/TODO)
 
 The video demonstrates:
 1. Agent submits purchase intent

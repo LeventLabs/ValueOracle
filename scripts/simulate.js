@@ -11,7 +11,7 @@ const scenarios = [
   { name: "Untrusted seller",  itemId: "laptop-001", price: 1000, sellerId: "seller-99",  expect: false },
   { name: "Low quality item",  itemId: "cable-001",  price: 25,   sellerId: "seller-200", expect: false },
   { name: "Good deal",         itemId: "headphones-001", price: 280, sellerId: "seller-100", expect: true },
-  { name: "Cashback saves it", itemId: "phone-001",  price: 950,  sellerId: "seller-42",  expect: true }
+  { name: "Coupon saves it",   itemId: "phone-001",  price: 950,  sellerId: "seller-42",  expect: true }
 ];
 
 async function evaluate(itemId, price, sellerId) {
