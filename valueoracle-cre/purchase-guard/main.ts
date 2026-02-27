@@ -1,18 +1,24 @@
 import {
-  CronCapability,
+  EVMClient,
   HTTPClient,
   handler,
   ok,
   consensusIdenticalAggregation,
-  type Runtime,
-  type HTTPSendRequester,
+  getNetwork,
+  bytesToHex,
+  hexToBase64,
   Runner,
+  type Runtime,
+  type EVMLog,
+  type HTTPSendRequester,
 } from "@chainlink/cre-sdk";
+import { keccak256, toBytes, decodeAbiParameters, parseAbiParameters } from "viem";
 import { z } from "zod";
 
 const configSchema = z.object({
-  schedule: z.string(),
   apiUrl: z.string(),
+  contractAddress: z.string(),
+  chainSelectorName: z.string(),
 });
 
 type Config = z.infer<typeof configSchema>;
@@ -26,18 +32,32 @@ type EvaluationResult = {
   reason: string;
 };
 
-// Sample purchase payload — in production this comes from an onchain event
-const SAMPLE_PURCHASE = {
-  itemId: "laptop-001",
-  price: 1100,
-  sellerId: "seller-42",
+// Decode PurchaseRequested event:
+// event PurchaseRequested(bytes32 indexed requestId, string itemId, uint256 proposedPrice, string sellerId, address requester)
+const decodePurchaseEvent = (log: EVMLog) => {
+  const requestId = bytesToHex(log.topics[1]);
+
+  // Non-indexed params: (string itemId, uint256 proposedPrice, string sellerId, address requester)
+  const decoded = decodeAbiParameters(
+    parseAbiParameters("string itemId, uint256 proposedPrice, string sellerId, address requester"),
+    bytesToHex(log.data)
+  );
+
+  return {
+    requestId,
+    itemId: decoded[0] as string,
+    proposedPrice: Number(decoded[1]),
+    sellerId: decoded[2] as string,
+    requester: decoded[3] as string,
+  };
 };
 
 const evaluatePurchase = (
   sendRequester: HTTPSendRequester,
-  config: Config
+  config: Config,
+  purchase: { itemId: string; price: number; sellerId: string }
 ): EvaluationResult => {
-  const bodyBytes = new TextEncoder().encode(JSON.stringify(SAMPLE_PURCHASE));
+  const bodyBytes = new TextEncoder().encode(JSON.stringify(purchase));
   const body = Buffer.from(bodyBytes).toString("base64");
 
   const req = {
@@ -45,7 +65,6 @@ const evaluatePurchase = (
     method: "POST" as const,
     body,
     headers: { "Content-Type": "application/json" },
-
   };
 
   const resp = sendRequester.sendRequest(req).result();
@@ -66,20 +85,32 @@ const evaluatePurchase = (
   };
 };
 
-const onCronTrigger = (runtime: Runtime<Config>): string => {
-  runtime.log("ValueOracle purchase evaluation triggered");
+// Handler: triggered by PurchaseRequested event on PurchaseGuard contract
+const onPurchaseRequested = (runtime: Runtime<Config>, log: EVMLog): string => {
+  const purchase = decodePurchaseEvent(log);
 
+  runtime.log(
+    `Purchase request detected: requestId=${purchase.requestId} item=${purchase.itemId} price=$${purchase.proposedPrice} seller=${purchase.sellerId}`
+  );
+
+  // Evaluate via Decision Engine API
   const httpClient = new HTTPClient();
 
   const result = httpClient
     .sendRequest(
       runtime,
-      evaluatePurchase,
+      (sendRequester) =>
+        evaluatePurchase(sendRequester, runtime.config, {
+          itemId: purchase.itemId,
+          price: purchase.proposedPrice,
+          sellerId: purchase.sellerId,
+        }),
       consensusIdenticalAggregation<EvaluationResult>()
-    )(runtime.config)
+    )()
     .result();
 
   const summary = [
+    `requestId=${purchase.requestId.slice(0, 10)}...`,
     `verdict=${result.verdict}`,
     `score=${result.valueScore}`,
     `ref=$${result.referencePrice}`,
@@ -95,10 +126,30 @@ const onCronTrigger = (runtime: Runtime<Config>): string => {
 };
 
 const initWorkflow = (config: Config) => {
+  const network = getNetwork({
+    chainFamily: "evm",
+    chainSelectorName: config.chainSelectorName,
+    isTestnet: true,
+  });
+
+  if (!network) {
+    throw new Error(`Network not found: ${config.chainSelectorName}`);
+  }
+
+  const evmClient = new EVMClient(network.chainSelector.selector);
+
+  // PurchaseRequested(bytes32 indexed requestId, string itemId, uint256 proposedPrice, string sellerId, address requester)
+  const purchaseRequestedHash = keccak256(
+    toBytes("PurchaseRequested(bytes32,string,uint256,string,address)")
+  );
+
   return [
     handler(
-      new CronCapability().trigger({ schedule: config.schedule }),
-      onCronTrigger
+      evmClient.logTrigger({
+        addresses: [hexToBase64(config.contractAddress)],
+        topics: [{ values: [hexToBase64(purchaseRequestedHash)] }],
+      }),
+      onPurchaseRequested
     ),
   ];
 };

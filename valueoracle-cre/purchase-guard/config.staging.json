@@ -1,4 +1,5 @@
 {
-  "schedule": "*/30 * * * * *",
-  "apiUrl": "http://localhost:3000"
+  "apiUrl": "http://localhost:3000",
+  "contractAddress": "0x80891AD6Ea08feC97F6D14eb817a20c5652f5777",
+  "chainSelectorName": "ethereum-testnet-sepolia"
 }
