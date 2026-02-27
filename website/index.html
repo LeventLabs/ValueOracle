@@ -1,352 +1,172 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ValueOracle - Verifiable Commerce Oracle for AI Agents</title>
-  <meta name="description" content="AI agents can spend money, but they cannot verify value. ValueOracle is the missing trust layer for agent commerce, powered by Chainlink CRE.">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    :root { --bg:#0a0a0f; --card:#12121a; --border:#1e1e2e; --accent:#375bd2; --accent-light:#5a7ef5; --green:#22c55e; --red:#ef4444; --text:#e2e2e8; --muted:#8888a0; }
-    body { background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,sans-serif; line-height:1.6; }
-    a { color:inherit; text-decoration:none; }
-    .wrap { max-width:900px; margin:0 auto; padding:0 1.5rem; }
-    .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:1.5rem; }
-    .glow { box-shadow:0 0 40px rgba(55,91,210,.15); }
-    .gradient-text { background:linear-gradient(135deg,#5a7ef5,#375bd2,#22c55e); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-    .btn { display:inline-block; padding:.75rem 1.5rem; border-radius:8px; font-weight:500; transition:all .2s; cursor:pointer; border:none; font-size:1rem; color:var(--text); }
-    .btn-primary { background:var(--accent); }
-    .btn-primary:hover { background:var(--accent-light); }
-    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
-    .grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; }
-    .grid4 { display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; }
-    .grid5 { display:grid; grid-template-columns:repeat(5,1fr); gap:1rem; }
-    .text-center { text-align:center; }
-    .mono { font-family:ui-monospace,monospace; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
-    .pulse { animation:pulse 2s ease-in-out infinite; }
-    .tag { display:inline-flex; align-items:center; gap:.5rem; padding:.25rem .75rem; border-radius:99px; border:1px solid var(--border); font-size:.75rem; color:var(--muted); }
-    .tag-dot { width:8px; height:8px; border-radius:50%; background:var(--green); }
-
-    nav { display:flex; align-items:center; justify-content:space-between; padding:1rem 1.5rem; border-bottom:1px solid var(--border); }
-    nav a { color:var(--muted); font-size:.875rem; transition:color .2s; }
-    nav a:hover { color:#fff; }
-    .nav-links { display:flex; gap:1.5rem; }
-
-    .hero { padding:6rem 0 4rem; text-align:center; }
-    .hero h1 { font-size:clamp(2.5rem,5vw,3.75rem); font-weight:700; line-height:1.1; margin-bottom:1.5rem; }
-    .hero p { font-size:1.125rem; color:var(--muted); max-width:640px; margin:0 auto 2.5rem; }
-    .hero strong { color:#fff; }
-    .hero-buttons { display:flex; gap:1rem; justify-content:center; }
-
-    section { padding:4rem 0; }
-    h2 { font-size:1.875rem; font-weight:700; text-align:center; margin-bottom:.75rem; }
-    .subtitle { text-align:center; color:var(--muted); margin-bottom:2.5rem; }
-
-    .scenario-btns { display:flex; flex-wrap:wrap; gap:.5rem; justify-content:center; margin-bottom:2rem; }
-    .scenario-btn { padding:.5rem 1rem; border-radius:8px; font-size:.8rem; cursor:pointer; transition:all .2s; border:1px solid var(--border); background:var(--card); color:var(--muted); }
-    .scenario-btn:hover { color:#fff; }
-    .scenario-btn.active { background:var(--accent); color:#fff; border-color:var(--accent); }
-
-    .oracle-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; }
-    .badge { padding:.25rem .75rem; border-radius:99px; font-size:.8rem; font-weight:500; }
-    .badge-green { background:rgba(34,197,94,.15); color:#4ade80; }
-    .badge-red { background:rgba(239,68,68,.15); color:#f87171; }
-
-    .bar-track { height:8px; border-radius:99px; background:var(--border); margin-top:.25rem; }
-    .bar-fill { height:8px; border-radius:99px; transition:width .5s; }
-    .bar-wrap { display:flex; align-items:center; gap:.75rem; margin-bottom:1rem; }
-    .bar-wrap .bar-track { flex:1; }
-
-    .row { display:flex; justify-content:space-between; padding:.35rem 0; font-size:.85rem; }
-    .row .label { color:var(--muted); }
-    .section-label { font-size:.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-top:.75rem; margin-bottom:.25rem; }
-    hr { border:none; border-top:1px solid var(--border); margin:.5rem 0; }
-
-    .arch { white-space:pre; text-align:center; font-size:.8rem; line-height:1.8; }
-
-    footer { border-top:1px solid var(--border); padding:2rem; text-align:center; font-size:.875rem; color:var(--muted); }
-
-    @media(max-width:768px) {
-      .grid3,.grid4,.grid5 { grid-template-columns:1fr 1fr; }
-      .grid2 { grid-template-columns:1fr; }
-      .nav-links { gap:.75rem; }
-    }
-    @media(max-width:480px) {
-      .grid3,.grid4,.grid5 { grid-template-columns:1fr; }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ValueOracle - Verifiable Commerce Oracle for AI Agents</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0a0f;--card:#12121a;--border:#1e1e2e;--accent:#375bd2;--al:#5a7ef5;--green:#22c55e;--red:#ef4444;--yellow:#facc15;--text:#e2e2e8;--muted:#8888a0}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;line-height:1.6}
+a{color:inherit;text-decoration:none}.wrap{max-width:920px;margin:0 auto;padding:0 1.5rem}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.5rem}
+.glow{box-shadow:0 0 40px rgba(55,91,210,.15)}
+.gt{background:linear-gradient(135deg,#5a7ef5,#375bd2,#22c55e);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.btn{display:inline-block;padding:.75rem 1.5rem;border-radius:8px;font-weight:500;transition:all .2s;cursor:pointer;border:none;font-size:1rem;color:var(--text)}
+.bp{background:var(--accent)}.bp:hover{background:var(--al)}
+.bo{border:1px solid var(--border);background:transparent}.bo:hover{border-color:var(--accent)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem}
+.tc{text-align:center}.mono{font-family:ui-monospace,'Cascadia Code',monospace}
+.tag{display:inline-flex;align-items:center;gap:.5rem;padding:.25rem .75rem;border-radius:99px;border:1px solid var(--border);font-size:.75rem;color:var(--muted)}
+.td{width:8px;height:8px;border-radius:50%}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}.pulse{animation:pulse 2s ease-in-out infinite}
+nav{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.5rem;border-bottom:1px solid var(--border)}
+nav a{color:var(--muted);font-size:.875rem;transition:color .2s}nav a:hover{color:#fff}
+.nl{display:flex;gap:1.5rem}.hero{padding:6rem 0 4rem;text-align:center}
+.hero h1{font-size:clamp(2.5rem,5vw,3.75rem);font-weight:700;line-height:1.1;margin-bottom:1.5rem}
+.hero p{font-size:1.125rem;color:var(--muted);max-width:640px;margin:0 auto 2.5rem}.hero strong{color:#fff}
+.hb{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap}
+section{padding:4rem 0}h2{font-size:1.875rem;font-weight:700;text-align:center;margin-bottom:.75rem}
+.sub{text-align:center;color:var(--muted);margin-bottom:2.5rem}
+.sb{display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center;margin-bottom:2rem}
+.sbn{padding:.5rem 1rem;border-radius:8px;font-size:.8rem;cursor:pointer;transition:all .2s;border:1px solid var(--border);background:var(--card);color:var(--muted)}
+.sbn:hover{color:#fff}.sbn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.oh{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem}
+.badge{padding:.25rem .75rem;border-radius:99px;font-size:.8rem;font-weight:500}
+.bg{background:rgba(34,197,94,.15);color:#4ade80}.br{background:rgba(239,68,68,.15);color:#f87171}
+.bt{height:8px;border-radius:99px;background:var(--border);margin-top:.25rem}
+.bf{height:8px;border-radius:99px;transition:width .5s}
+.bw{display:flex;align-items:center;gap:.75rem;margin-bottom:1rem}.bw .bt{flex:1}
+.row{display:flex;justify-content:space-between;padding:.35rem 0;font-size:.85rem}.row .label{color:var(--muted)}
+.sl{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:.75rem;margin-bottom:.25rem}
+hr{border:none;border-top:1px solid var(--border);margin:.5rem 0}
+.term{background:#0d1117;border:1px solid #21262d;border-radius:10px;padding:1.25rem;font-family:ui-monospace,monospace;font-size:.8rem;line-height:1.7;overflow-x:auto}
+.term .p{color:#8b949e}.term .ok{color:var(--green)}.term .i{color:var(--al)}.term .w{color:var(--yellow)}
+.el{display:inline-flex;align-items:center;gap:.5rem;padding:.5rem 1rem;border-radius:8px;border:1px solid var(--border);font-size:.8rem;color:var(--muted);transition:all .2s}
+.el:hover{border-color:var(--accent);color:#fff}
+footer{border-top:1px solid var(--border);padding:2rem;text-align:center;font-size:.875rem;color:var(--muted)}
+footer a{color:var(--al);transition:color .2s}footer a:hover{color:#fff}
+@media(max-width:768px){.g3,.g4{grid-template-columns:1fr 1fr}.g2{grid-template-columns:1fr}.nl{gap:.75rem}}
+@media(max-width:480px){.g3,.g4{grid-template-columns:1fr}.hb{flex-direction:column;align-items:center}}
+</style>
 </head>
 <body>
-
-<nav>
-  <span style="font-size:1.25rem;font-weight:700">&#128737;&#65039; ValueOracle</span>
-  <div class="nav-links">
-    <a href="#how">How it Works</a>
-    <a href="#demo">Live Demo</a>
-  </div>
-</nav>
-
+<nav><span style="font-size:1.25rem;font-weight:700">&#128737;&#65039; ValueOracle</span><div class="nl"><a href="#how">How it Works</a><a href="#demo">Live Demo</a><a href="#privacy">Privacy</a><a href="#reviews">Reviews</a><a href="https://github.com/LeventLabs/ValueOracle" target="_blank">GitHub</a></div></nav>
 <div class="wrap">
-
-  <!-- Hero -->
-  <section class="hero">
-    <div class="tag" style="margin-bottom:1.5rem"><span class="tag-dot pulse"></span> Built for Convergence - Chainlink Hackathon</div>
-    <h1>AI agents can spend money.<br><span class="gradient-text">They can't verify value.</span></h1>
-    <p>ValueOracle is a verifiable commerce oracle powered by Chainlink CRE. Not just price checks - it evaluates whether a purchase is actually <strong>worth it</strong>.</p>
-    <div class="hero-buttons">
-      <a href="#demo" class="btn btn-primary">Try Live Demo</a>
-      <a href="https://github.com/LeventLabs/ValueOracle" target="_blank" class="btn" style="border:1px solid var(--border)">View Source on GitHub</a>
-    </div>
-  </section>
-
-  <!-- Comparison -->
-  <section>
-    <div class="grid3">
-      <div class="card">
-        <div style="font-size:.8rem;color:var(--muted);margin-bottom:.5rem">Chainlink Price Feed</div>
-        <div style="font-size:1.1rem;font-weight:600">ETH/USD &rarr; $3,245</div>
-        <div style="font-size:.8rem;color:var(--muted);margin-top:.25rem">Token price</div>
-      </div>
-      <div class="card">
-        <div style="font-size:.8rem;color:var(--muted);margin-bottom:.5rem">Simple Price Oracle</div>
-        <div style="font-size:1.1rem;font-weight:600">Laptop &rarr; $1,100</div>
-        <div style="font-size:.8rem;color:var(--muted);margin-top:.25rem">Just a price check</div>
-      </div>
-      <div class="card glow" style="border-color:var(--accent)">
-        <div style="font-size:.8rem;color:var(--accent-light);margin-bottom:.5rem">ValueOracle</div>
-        <div style="font-size:1.1rem;font-weight:600">Laptop &rarr; 92/100 &#10004;</div>
-        <div style="font-size:.8rem;color:var(--muted);margin-top:.25rem">Price + quality + trust = value</div>
-      </div>
-    </div>
-  </section>
-
-  <!-- How it Works -->
-  <section id="how">
-    <h2>How it Works</h2>
-    <div style="margin-top:2.5rem" class="grid4">
-      <div class="card text-center">
-        <div style="font-size:1.5rem;font-weight:700;color:var(--accent);margin-bottom:.5rem">01</div>
-        <div style="font-weight:600;margin-bottom:.25rem">Agent Intent</div>
-        <div style="font-size:.8rem;color:var(--muted)">AI agent submits purchase intent to PurchaseGuard smart contract</div>
-      </div>
-      <div class="card text-center">
-        <div style="font-size:1.5rem;font-weight:700;color:var(--accent);margin-bottom:.5rem">02</div>
-        <div style="font-weight:600;margin-bottom:.25rem">CRE Trigger</div>
-        <div style="font-size:.8rem;color:var(--muted)">Chainlink CRE workflow triggers on PurchaseRequested event</div>
-      </div>
-      <div class="card text-center">
-        <div style="font-size:1.5rem;font-weight:700;color:var(--accent);margin-bottom:.5rem">03</div>
-        <div style="font-weight:600;margin-bottom:.25rem">Value Analysis</div>
-        <div style="font-size:.8rem;color:var(--muted)">Engine aggregates prices, quality ratings, reviews &amp; return rates</div>
-      </div>
-      <div class="card text-center">
-        <div style="font-size:1.5rem;font-weight:700;color:var(--accent);margin-bottom:.5rem">04</div>
-        <div style="font-weight:600;margin-bottom:.25rem">Oracle Decision</div>
-        <div style="font-size:.8rem;color:var(--muted)">Signed value verdict (approve/reject) returned onchain</div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Value Score Formula -->
-  <section>
-    <h2>Value Score Formula</h2>
-    <p class="subtitle">Not just "is it cheap?" - but "is it worth it?"</p>
-    <div class="grid4">
-      <div class="card text-center">
-        <div style="font-size:1.5rem;margin-bottom:.5rem">&#128176;</div>
-        <div style="font-weight:600">Price Fairness</div>
-        <div class="mono" style="font-size:.8rem;color:var(--accent)">35%</div>
-        <div style="font-size:.75rem;color:var(--muted);margin-top:.25rem">Proposed vs market median across sources</div>
-      </div>
-      <div class="card text-center">
-        <div style="font-size:1.5rem;margin-bottom:.5rem">&#11088;</div>
-        <div style="font-weight:600">Quality Signal</div>
-        <div class="mono" style="font-size:.8rem;color:var(--accent)">25%</div>
-        <div style="font-size:.75rem;color:var(--muted);margin-top:.25rem">Product rating, review count, return rate</div>
-      </div>
-      <div class="card text-center">
-        <div style="font-size:1.5rem;margin-bottom:.5rem">&#129309;</div>
-        <div style="font-weight:600">Seller Trust</div>
-        <div class="mono" style="font-size:.8rem;color:var(--accent)">25%</div>
-        <div style="font-size:.75rem;color:var(--muted);margin-top:.25rem">Seller reputation score &amp; history</div>
-      </div>
-      <div class="card text-center">
-        <div style="font-size:1.5rem;margin-bottom:.5rem">&#9878;&#65039;</div>
-        <div style="font-weight:600">Value Ratio</div>
-        <div class="mono" style="font-size:.8rem;color:var(--accent)">15%</div>
-        <div style="font-size:.75rem;color:var(--muted);margin-top:.25rem">Quality-to-price ratio vs alternatives</div>
-      </div>
-    </div>
-    <div class="card mono text-center" style="margin-top:1.5rem;font-size:.8rem">
-      valueScore = priceFairness x 0.35 + qualitySignal x 0.25 + sellerTrust x 0.25 + valueRatio x 0.15<br>
-      <span style="color:var(--green)">score &ge; 70 &rarr; APPROVE</span> &nbsp;|&nbsp;
-      <span style="color:#facc15">40-69 &rarr; CAUTION</span> &nbsp;|&nbsp;
-      <span style="color:var(--red)">score &lt; 40 &rarr; REJECT</span>
-    </div>
-  </section>
-
-  <!-- Live Demo -->
-  <section id="demo">
-    <h2>Live Oracle Demo</h2>
-    <p class="subtitle">See how ValueOracle evaluates real purchase decisions</p>
-    <div class="scenario-btns" id="scenarioBtns"></div>
-    <div class="card glow" style="max-width:640px;margin:0 auto" id="oracleResult"></div>
-  </section>
-
-  <!-- Architecture -->
-  <section>
-    <h2>Architecture</h2>
-    <div class="card mono arch" style="margin-top:2.5rem">AI Agent  &rarr;  PurchaseGuard.sol  &rarr;  Chainlink CRE Workflow
-                    &uarr;                        &darr;
-                    |              Offchain Value Engine
-                    |              - Multi-source prices
-                    |              - Quality ratings &amp; reviews
-                    |              - Seller reputation
-                    |              - Value score calculation
-                    &larr;------ Oracle Response (value score + verdict)</div>
-  </section>
-
-  <!-- Tech Stack -->
-  <section>
-    <h2>Tech Stack</h2>
-    <div class="grid5" style="margin-top:2.5rem">
-      <div class="card text-center"><div style="font-size:.8rem;color:var(--muted)">Smart Contract</div><div style="font-weight:600;margin-top:.25rem">Solidity</div></div>
-      <div class="card text-center"><div style="font-size:.8rem;color:var(--muted)">Oracle Layer</div><div style="font-weight:600;margin-top:.25rem">Chainlink CRE</div></div>
-      <div class="card text-center"><div style="font-size:.8rem;color:var(--muted)">Value Engine</div><div style="font-weight:600;margin-top:.25rem">Node.js</div></div>
-      <div class="card text-center"><div style="font-size:.8rem;color:var(--muted)">Network</div><div style="font-weight:600;margin-top:.25rem">Sepolia</div></div>
-      <div class="card text-center"><div style="font-size:.8rem;color:var(--muted)">Data Sources</div><div style="font-weight:600;margin-top:.25rem">Multi-source</div></div>
-    </div>
-  </section>
-
+<section class="hero">
+<div style="display:flex;gap:.75rem;justify-content:center;margin-bottom:1.5rem;flex-wrap:wrap"><div class="tag"><span class="td pulse" style="background:var(--green)"></span> Built for Convergence &#8212; Chainlink Hackathon</div><div class="tag"><span class="td" style="background:var(--accent)"></span> CRE &amp; AI Track</div><div class="tag"><span class="td" style="background:#a855f7"></span> Privacy Track</div></div>
+<h1>AI agents can spend money.<br><span class="gt">They can't verify value.</span></h1>
+<p>ValueOracle is a verifiable commerce oracle powered by Chainlink CRE that protects autonomous agents from overpaying, fraud, and price manipulation. Not just price checks &#8212; it evaluates whether a purchase is actually <strong>worth it</strong>.</p>
+<div class="hb"><a href="#demo" class="btn bp">Try Live Demo</a><a href="https://github.com/LeventLabs/ValueOracle" target="_blank" class="btn bo">View Source</a><a href="https://sepolia.etherscan.io/address/0x80891AD6Ea08feC97F6D14eb817a20c5652f5777" target="_blank" class="el">&#9670; View on Etherscan</a></div>
+</section>
+<section><div class="g3">
+<div class="card"><div style="font-size:.8rem;color:var(--muted);margin-bottom:.5rem">Chainlink Price Feed</div><div style="font-size:1.1rem;font-weight:600">ETH/USD &#8594; $3,245</div><div style="font-size:.8rem;color:var(--muted);margin-top:.25rem">Token price</div></div>
+<div class="card"><div style="font-size:.8rem;color:var(--muted);margin-bottom:.5rem">Simple Price Oracle</div><div style="font-size:1.1rem;font-weight:600">Laptop &#8594; $1,100</div><div style="font-size:.8rem;color:var(--muted);margin-top:.25rem">Just a price check</div></div>
+<div class="card glow" style="border-color:var(--accent)"><div style="font-size:.8rem;color:var(--al);margin-bottom:.5rem">ValueOracle</div><div style="font-size:1.1rem;font-weight:600">Laptop &#8594; 95/100 &#10004;</div><div style="font-size:.8rem;color:var(--muted);margin-top:.25rem">Price + quality + trust + deals = value</div></div>
+</div></section>
+<section id="how"><h2>How it Works</h2>
+<div style="margin-top:2.5rem" class="g4">
+<div class="card tc"><div style="font-size:1.5rem;font-weight:700;color:var(--accent);margin-bottom:.5rem">01</div><div style="font-weight:600;margin-bottom:.25rem">Agent Intent</div><div style="font-size:.8rem;color:var(--muted)">AI agent submits purchase intent to PurchaseGuard smart contract</div></div>
+<div class="card tc"><div style="font-size:1.5rem;font-weight:700;color:var(--accent);margin-bottom:.5rem">02</div><div style="font-weight:600;margin-bottom:.25rem">CRE Trigger</div><div style="font-size:.8rem;color:var(--muted)">Chainlink CRE workflow triggers on PurchaseRequested event</div></div>
+<div class="card tc"><div style="font-size:1.5rem;font-weight:700;color:var(--accent);margin-bottom:.5rem">03</div><div style="font-weight:600;margin-bottom:.25rem">Value Analysis</div><div style="font-size:.8rem;color:var(--muted)">Engine aggregates prices, quality, seller trust, deals &amp; agent reviews</div></div>
+<div class="card tc"><div style="font-size:1.5rem;font-weight:700;color:var(--accent);margin-bottom:.5rem">04</div><div style="font-weight:600;margin-bottom:.25rem">Oracle Decision</div><div style="font-size:.8rem;color:var(--muted)">Signed value verdict (approve/reject) returned onchain</div></div>
+</div></section>
+<section><h2>Value Score Formula</h2>
+<p class="sub">Not just "is it cheap?" &#8212; but "is it worth it?"</p>
+<div class="g4">
+<div class="card tc"><div style="font-size:1.5rem;margin-bottom:.5rem">&#128176;</div><div style="font-weight:600">Price Fairness</div><div class="mono" style="font-size:.8rem;color:var(--accent)">35%</div><div style="font-size:.75rem;color:var(--muted);margin-top:.25rem">Proposed vs market median</div></div>
+<div class="card tc"><div style="font-size:1.5rem;margin-bottom:.5rem">&#11088;</div><div style="font-weight:600">Quality Signal</div><div class="mono" style="font-size:.8rem;color:var(--accent)">25%</div><div style="font-size:.75rem;color:var(--muted);margin-top:.25rem">Rating, reviews, return rate</div></div>
+<div class="card tc"><div style="font-size:1.5rem;margin-bottom:.5rem">&#129309;</div><div style="font-weight:600">Seller Trust</div><div class="mono" style="font-size:.8rem;color:var(--accent)">25%</div><div style="font-size:.75rem;color:var(--muted);margin-top:.25rem">Reputation + onchain agent reviews</div></div>
+<div class="card tc"><div style="font-size:1.5rem;margin-bottom:.5rem">&#9878;&#65039;</div><div style="font-weight:600">Value Ratio</div><div class="mono" style="font-size:.8rem;color:var(--accent)">15%</div><div style="font-size:.75rem;color:var(--muted);margin-top:.25rem">Quality-to-price ratio</div></div>
 </div>
-
-<footer>
-  <p>ValueOracle - Built for Convergence: A Chainlink Hackathon</p>
-  <p style="margin-top:.25rem">by LeventLabs</p>
-</footer>
-
+<div class="card mono tc" style="margin-top:1.5rem;font-size:.8rem">effectivePrice = price - cashback - coupon + shippingFee<br>valueScore = priceFairness &#215; 0.35 + qualitySignal &#215; 0.25 + sellerTrust &#215; 0.25 + valueRatio &#215; 0.15<br><span style="color:var(--green)">score &#8805; 70 &#8594; APPROVE</span> &#160;|&#160; <span style="color:var(--yellow)">40-69 &#8594; CAUTION</span> &#160;|&#160; <span style="color:var(--red)">&lt; 40 &#8594; REJECT</span> &#160;|&#160; <span style="color:var(--red)">seller &lt; 0.4 &#8594; BLOCKED</span></div>
+</section>
+<section id="demo"><h2>Live Oracle Demo</h2>
+<p class="sub">See how ValueOracle evaluates real purchase decisions</p>
+<div class="sb" id="scenarioBtns"></div>
+<div class="card glow" style="max-width:640px;margin:0 auto" id="oracleResult"></div>
+</section>
+<section><h2>CRE Workflow Simulation</h2>
+<p class="sub">Real output from <span class="mono" style="color:var(--al)">cre workflow simulate</span> using Chainlink CRE CLI</p>
+<div class="term" style="max-width:720px;margin:0 auto">
+<div><span class="p">$</span> cre workflow simulate purchase-guard --target staging-settings</div><br>
+<div><span class="ok">&#10003;</span> Workflow compiled</div>
+<div><span class="i">[SIMULATION]</span> Simulator Initialized</div>
+<div><span class="i">[SIMULATION]</span> Running trigger trigger=cron-trigger@1.0.0</div>
+<div><span class="i">[USER LOG]</span> ValueOracle purchase evaluation triggered</div>
+<div><span class="i">[USER LOG]</span> Purchase evaluation complete: <span class="ok">verdict=APPROVE</span> | score=95 | ref=$1095 | eff=$1048 | reason="Fair price and trusted seller"</div>
+<div><span class="ok">&#10003;</span> Workflow Simulation Result: <span style="color:#fff">"APPROVE: score 95/100"</span></div><br>
+<div><span class="i">[SIMULATION]</span> Execution finished</div>
+</div></section>
+<section id="privacy"><h2>Privacy Layer</h2>
+<p class="sub">Confidential purchases using Chainlink Confidential HTTP + commit-reveal pattern</p>
+<div class="g3" style="margin-bottom:2rem">
+<div class="card"><div style="font-size:1.25rem;margin-bottom:.5rem">&#128065;&#8205;&#128488;&#65039;</div><div style="font-weight:600;margin-bottom:.25rem">Front-Running Protection</div><div style="font-size:.8rem;color:var(--muted)">Competing agents can't see what you're buying or at what price</div></div>
+<div class="card"><div style="font-size:1.25rem;margin-bottom:.5rem">&#128272;</div><div style="font-weight:600;margin-bottom:.25rem">Encrypted Evaluation</div><div style="font-size:.8rem;color:var(--muted)">Plaintext sent via Confidential HTTP to CRE enclave &#8212; node operators can't read it</div></div>
+<div class="card"><div style="font-size:1.25rem;margin-bottom:.5rem">&#128275;</div><div style="font-weight:600;margin-bottom:.25rem">Optional Reveal</div><div style="font-size:.8rem;color:var(--muted)">Agent can reveal purchase details post-fulfillment for transparency or reviews</div></div>
+</div>
+<div class="card" style="max-width:720px;margin:0 auto"><div style="font-size:.8rem;color:var(--muted);margin-bottom:1rem">Standard vs Confidential Flow</div>
+<div class="term" style="border:none;padding:0;background:transparent;font-size:.75rem;line-height:1.9">
+<div><span class="w">Standard:</span> Agent &#8594; itemId + price + sellerId &#8594; <span style="color:var(--red)">onchain (public)</span> &#8594; oracle evaluates</div><br>
+<div><span class="ok">Private:</span> Agent &#8594; keccak256(itemId, price, sellerId, salt) &#8594; <span class="ok">onchain (only hash)</span></div>
+<div style="padding-left:4.5rem">&#8594; plaintext via <span class="i">Confidential HTTP</span> to CRE enclave</div>
+<div style="padding-left:4.5rem">&#8594; only approve/reject written onchain &#8212; <span class="ok">no details exposed</span></div>
+</div></div>
+<div class="term" style="max-width:720px;margin:1.5rem auto 0">
+<div><span class="p">$</span> node agent/cli.js buy-private laptop-001 --price 1100 --seller seller-42</div>
+<div>Confidential purchase: laptop-001 @ $1100 from seller-42</div>
+<div>intent hash: <span style="color:var(--muted)">0xb21e4a9c...a88d67</span></div>
+<div>salt (save this for reveal): <span style="color:var(--muted)">0xc4703aa2...0b06dbbf</span></div>
+<div>tx: <span style="color:var(--muted)">0x65a4bb71...475f8a</span></div>
+<div>confirmed in block <span class="i">10336580</span></div>
+<div>oracle verdict: <span class="ok">APPROVE</span> (score=95)</div>
+</div></section>
+<section id="reviews"><h2>Agent-to-Agent Trust Network</h2>
+<p class="sub">Onchain reviews from buying agents feed back into seller trust scores</p>
+<div class="g2" style="max-width:720px;margin:0 auto">
+<div class="card"><div style="font-weight:600;margin-bottom:.75rem">How it works</div><div style="font-size:.8rem;color:var(--muted);line-height:1.8">After a purchase is approved, the buying agent submits an onchain review &#8212; rating quality, delivery, and value (1-5 each).<br><br>Sybil-resistant: only the original requester of an approved purchase can review. Double reviews are blocked at the contract level.</div></div>
+<div class="card"><div style="font-weight:600;margin-bottom:.75rem">Feedback loop</div><div style="font-size:.8rem;color:var(--muted);line-height:1.8">Agent reviews blend into seller trust scores with up to 30% weight based on review count.<br><br>More agents transacting &#8594; richer feedback &#8594; smarter decisions for everyone. A collective commerce intelligence layer.</div></div>
+</div>
+<div class="term" style="max-width:720px;margin:1.5rem auto 0">
+<div><span class="p">$</span> node agent/cli.js review &lt;requestId&gt; --quality 5 --delivery 4 --value 5 --comment "Fast shipping, fair price"</div>
+<div>Review submitted for request <span style="color:var(--muted)">0x7a3f...</span></div>
+<div>quality=5 delivery=4 value=5</div>
+<div>tx: <span style="color:var(--muted)">0x9c2d...confirmed</span></div><br>
+<div><span class="p">GET</span> /reviews/seller/seller-42</div>
+<div>{ reviews: 3, avg: <span class="ok">4.67/5</span>, quality: 4.67, delivery: 4.33, value: 5.00 }</div>
+</div></section>
+<section><h2>Tech Stack</h2>
+<div class="g3" style="margin-top:2.5rem">
+<div class="card tc"><div style="font-size:.8rem;color:var(--muted)">Smart Contract</div><div style="font-weight:600;margin-top:.25rem">Solidity (Sepolia)</div></div>
+<div class="card tc"><div style="font-size:.8rem;color:var(--muted)">Oracle Layer</div><div style="font-weight:600;margin-top:.25rem">Chainlink CRE</div></div>
+<div class="card tc"><div style="font-size:.8rem;color:var(--muted)">Privacy</div><div style="font-weight:600;margin-top:.25rem">Confidential HTTP + Commit-Reveal</div></div>
+<div class="card tc"><div style="font-size:.8rem;color:var(--muted)">Decision Engine</div><div style="font-weight:600;margin-top:.25rem">Node.js</div></div>
+<div class="card tc"><div style="font-size:.8rem;color:var(--muted)">Network</div><div style="font-weight:600;margin-top:.25rem">Ethereum Sepolia</div></div>
+<div class="card tc"><div style="font-size:.8rem;color:var(--muted)">CRE Workflow</div><div style="font-weight:600;margin-top:.25rem">TypeScript SDK</div></div>
+</div>
+<div style="text-align:center;margin-top:1.5rem"><a href="https://sepolia.etherscan.io/address/0x80891AD6Ea08feC97F6D14eb817a20c5652f5777" target="_blank" class="el">&#9670; 0x80891AD6...f5777 &#8212; View Contract on Etherscan</a></div>
+</section>
+</div>
+<footer><p>ValueOracle &#8212; Built for <a href="https://chain.link/hackathon" target="_blank">Convergence: A Chainlink Hackathon</a></p><p style="margin-top:.5rem"><a href="https://github.com/LeventLabs/ValueOracle" target="_blank">GitHub</a> &#183; <a href="https://sepolia.etherscan.io/address/0x80891AD6Ea08feC97F6D14eb817a20c5652f5777" target="_blank">Etherscan</a> &#183; by <a href="https://leventlabs.com" target="_blank">LeventLabs</a></p></footer>
 <script>
-var API_URL = 'http://localhost:3000';
-
-var scenarios = [
-  { product:"MacBook Pro M3", itemId:"laptop-001", proposed:2500, sellerId:"seller-42", fallback:{ median:1100, seller:4.3, rating:4.7, reviews:12400, returnRate:2.1, valueScore:18, result:"rejected", reason:"Price 127% above median - poor value" }},
-  { product:"MacBook Pro M3", itemId:"laptop-001", proposed:1100, sellerId:"seller-42", fallback:{ median:1100, seller:4.3, rating:4.7, reviews:12400, returnRate:2.1, valueScore:92, result:"approved", reason:"Fair price + excellent quality = high value" }},
-  { product:"Sony WH-1000XM5", itemId:"headphones-001", proposed:280, sellerId:"seller-100", fallback:{ median:299, seller:4.6, rating:4.6, reviews:8700, returnRate:3.4, valueScore:88, result:"approved", reason:"Below median price with strong quality signals" }},
-  { product:"iPhone 15 Pro", itemId:"phone-001", proposed:1400, sellerId:"seller-99", fallback:{ median:900, seller:1.5, rating:4.5, reviews:31000, returnRate:1.8, valueScore:12, result:"rejected", reason:"Seller reputation too low - fraud risk" }},
-  { product:"Generic USB Cable", itemId:"cable-001", proposed:25, sellerId:"seller-200", fallback:{ median:12, seller:0.8, rating:2.8, reviews:140, returnRate:18.5, valueScore:15, result:"rejected", reason:"Low quality + overpriced" }},
-  { product:"Samsung 4K TV", itemId:"tablet-001", proposed:450, sellerId:"seller-100", fallback:{ median:450, seller:4.6, rating:4.3, reviews:5600, returnRate:4.2, valueScore:79, result:"approved", reason:"Slight premium but strong quality justifies price" }}
-];
-
-var active = 0;
-var apiAvailable = false;
-
-fetch(API_URL + '/health').then(function() { apiAvailable = true; }).catch(function() {});
-
-function fetchFromAPI(scenario) {
-  return fetch(API_URL + '/evaluate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ itemId: scenario.itemId, price: scenario.proposed, sellerId: scenario.sellerId })
-  }).then(function(res) {
-    if (!res.ok) throw new Error('API error');
-    return res.json();
-  }).catch(function() { return null; });
-}
-
-function renderResult(s, data) {
-  var dev = ((s.proposed - data.median) / data.median * 100).toFixed(1);
-  var barColor = data.valueScore >= 70 ? "var(--green)" : data.valueScore >= 40 ? "#facc15" : "var(--red)";
-  var isApproved = data.result === "approved";
-  var liveTag = data.live ? ' <span style="color:var(--green)">LIVE</span>' : ' <span style="color:var(--muted)">OFFLINE</span>';
-
-  var breakdownHtml = '';
-  if (data.breakdown) {
-    breakdownHtml = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.75rem">' +
-      '<div style="font-size:.7rem;color:var(--muted)">Price Fairness <span style="color:var(--accent)">' + data.breakdown.priceFairness + '/100</span></div>' +
-      '<div style="font-size:.7rem;color:var(--muted)">Quality Signal <span style="color:var(--accent)">' + data.breakdown.qualitySignal + '/100</span></div>' +
-      '<div style="font-size:.7rem;color:var(--muted)">Seller Trust <span style="color:var(--accent)">' + data.breakdown.sellerTrust + '/100</span></div>' +
-      '<div style="font-size:.7rem;color:var(--muted)">Value Ratio <span style="color:var(--accent)">' + data.breakdown.valueRatio + '/100</span></div>' +
-      '</div>';
-  }
-
-  document.getElementById("oracleResult").innerHTML =
-    '<div class="oracle-header">' +
-      '<span style="font-size:.8rem;color:var(--muted)">Oracle Response' + liveTag + '</span>' +
-      '<span class="badge ' + (isApproved ? 'badge-green' : 'badge-red') + '">' + (isApproved ? 'APPROVED' : 'REJECTED') + '</span>' +
-    '</div>' +
-    '<div style="font-size:.75rem;color:var(--muted);margin-bottom:.25rem">Value Score</div>' +
-    '<div class="bar-wrap">' +
-      '<div class="bar-track"><div class="bar-fill" style="width:' + data.valueScore + '%;background:' + barColor + '"></div></div>' +
-      '<span class="mono" style="font-size:.85rem;font-weight:700">' + data.valueScore + '/100</span>' +
-    '</div>' +
-    breakdownHtml +
-    '<div class="mono">' +
-      '<div class="section-label">Price</div>' +
-      '<div class="row"><span class="label">proposed</span><span>$' + s.proposed.toLocaleString() + '</span></div>' +
-      '<div class="row"><span class="label">marketMedian</span><span>$' + data.median.toLocaleString() + '</span></div>' +
-      '<div class="row"><span class="label">deviation</span><span>' + dev + '%</span></div>' +
-      (data.effectivePrice && data.effectivePrice !== s.proposed ?
-        '<div class="row"><span class="label">effectivePrice</span><span>$' + data.effectivePrice.toLocaleString() + '</span></div>' : '') +
-      (data.deal ?
-        (data.deal.cashback ? '<div class="row"><span class="label">cashback</span><span style="color:var(--green)">-$' + data.deal.cashback + '</span></div>' : '') +
-        (data.deal.coupon ? '<div class="row"><span class="label">coupon</span><span style="color:var(--green)">-$' + data.deal.coupon + '</span></div>' : '') +
-        (data.deal.shippingFee ? '<div class="row"><span class="label">shippingFee</span><span style="color:var(--red)">+$' + data.deal.shippingFee + '</span></div>' : '')
-      : '') +
-      '<div class="section-label">Quality</div>' +
-      '<div class="row"><span class="label">productRating</span><span>' + data.rating + '</span></div>' +
-      '<div class="row"><span class="label">reviewCount</span><span>' + data.reviews.toLocaleString() + '</span></div>' +
-      '<div class="row"><span class="label">returnRate</span><span>' + data.returnRate + '%</span></div>' +
-      '<div class="section-label">Trust</div>' +
-      '<div class="row"><span class="label">sellerScore</span><span>' + data.seller + '/5.0</span></div>' +
-      (data.reviewStats ?
-        '<div class="row"><span class="label">agentReviews</span><span>' + data.reviewStats.count + ' reviews (' + data.reviewStats.overall + '/5)</span></div>' : '') +
-      '<hr>' +
-      '<div class="row"><span class="label">verdict</span><span style="text-align:right;max-width:60%">' + data.reason + '</span></div>' +
-    '</div>';
-}
-
-function render() {
-  var btns = document.getElementById("scenarioBtns");
-  var html = '';
-  for (var i = 0; i < scenarios.length; i++) {
-    html += '<button class="scenario-btn ' + (i === active ? 'active' : '') + '" onclick="setActive(' + i + ')">' + scenarios[i].product + ' - $' + scenarios[i].proposed.toLocaleString() + '</button>';
-  }
-  btns.innerHTML = html;
-
-  var s = scenarios[active];
-
-  if (apiAvailable) {
-    document.getElementById("oracleResult").innerHTML = '<div style="text-align:center;color:var(--muted);padding:2rem">Querying oracle...</div>';
-    fetchFromAPI(s).then(function(apiData) {
-      if (apiData && !apiData.error) {
-        renderResult(s, {
-          median: apiData.referencePrice,
-          seller: (apiData.seller.score * 5).toFixed(1),
-          rating: apiData.product.rating,
-          reviews: apiData.product.reviewCount,
-          returnRate: apiData.product.returnRate,
-          valueScore: apiData.valueScore,
-          result: apiData.approved ? 'approved' : 'rejected',
-          reason: apiData.reason,
-          breakdown: apiData.breakdown,
-          effectivePrice: apiData.effectivePrice,
-          deal: apiData.deal,
-          reviewStats: apiData.seller.reviewStats,
-          live: true
-        });
-      } else {
-        renderResult(s, Object.assign({}, s.fallback, { live: false }));
-      }
-    });
-  } else {
-    renderResult(s, Object.assign({}, s.fallback, { live: false }));
-  }
-}
-
-function setActive(i) { active = i; render(); }
+var A='http://localhost:3000',scenarios=[
+{product:"MacBook Pro M3 (Fair)",itemId:"laptop-001",proposed:1100,sellerId:"seller-42",fallback:{median:1095,seller:"4.25",rating:4.7,reviews:12400,returnRate:2.1,valueScore:95,result:"approved",reason:"Fair price and trusted seller",breakdown:{priceFairness:100,qualitySignal:83,sellerTrust:85,valueRatio:85},effectivePrice:1048,deal:{cashback:47,coupon:5,shippingFee:0},reviewStats:{count:3,overall:"4.67"}}},
+{product:"MacBook Pro M3 (Overpriced)",itemId:"laptop-001",proposed:2500,sellerId:"seller-42",fallback:{median:1095,seller:"4.25",rating:4.7,reviews:12400,returnRate:2.1,valueScore:68,result:"rejected",reason:"Price 123.6% above market median",breakdown:{priceFairness:45,qualitySignal:83,sellerTrust:85,valueRatio:45},effectivePrice:2448,deal:{cashback:47,coupon:5,shippingFee:0},reviewStats:{count:3,overall:"4.67"}}},
+{product:"Sony WH-1000XM5",itemId:"headphones-001",proposed:280,sellerId:"seller-100",fallback:{median:295,seller:"4.60",rating:4.6,reviews:8700,returnRate:3.4,valueScore:95,result:"approved",reason:"Fair price and trusted seller",breakdown:{priceFairness:100,qualitySignal:78,sellerTrust:92,valueRatio:92},effectivePrice:274,deal:{cashback:0,coupon:6,shippingFee:0},reviewStats:{count:2,overall:"4.50"}}},
+{product:"iPhone 15 (Untrusted)",itemId:"laptop-001",proposed:1000,sellerId:"seller-99",fallback:{median:1095,seller:"1.50",rating:4.7,reviews:12400,returnRate:2.1,valueScore:81,result:"rejected",reason:"Seller trust critically low (0.30/1.0)",breakdown:{priceFairness:100,qualitySignal:83,sellerTrust:30,valueRatio:94},effectivePrice:948,deal:{cashback:47,coupon:5,shippingFee:0},reviewStats:{count:1,overall:"1.33"}}},
+{product:"Generic USB Cable",itemId:"cable-001",proposed:25,sellerId:"seller-200",fallback:{median:11,seller:"0.75",rating:2.8,reviews:140,returnRate:18.5,valueScore:27,result:"rejected",reason:"Seller trust critically low (0.15/1.0)",breakdown:{priceFairness:44,qualitySignal:30,sellerTrust:15,valueRatio:22},effectivePrice:30,deal:{cashback:0,coupon:0,shippingFee:5}}},
+{product:"Cashback Saves It",itemId:"phone-001",proposed:950,sellerId:"seller-42",fallback:{median:899,seller:"4.25",rating:4.5,reviews:31000,returnRate:1.8,valueScore:93,result:"approved",reason:"Fair price and trusted seller",breakdown:{priceFairness:99,qualitySignal:85,sellerTrust:85,valueRatio:90},effectivePrice:910,deal:{cashback:35,coupon:5,shippingFee:0},reviewStats:{count:3,overall:"4.67"}}}
+],active=0,apiOk=false;
+fetch(A+'/health').then(function(){apiOk=true}).catch(function(){});
+function fetchAPI(s){return fetch(A+'/evaluate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({itemId:s.itemId,price:s.proposed,sellerId:s.sellerId})}).then(function(r){if(!r.ok)throw new Error('err');return r.json()}).catch(function(){return null})}
+function renderResult(s,d){
+var dev=((s.proposed-d.median)/d.median*100).toFixed(1),bc=d.valueScore>=70?"var(--green)":d.valueScore>=40?"var(--yellow)":"var(--red)",ok=d.result==="approved",lt=d.live?' <span style="color:var(--green)">LIVE</span>':' <span style="color:var(--muted)">OFFLINE</span>',bh='',dh='';
+if(d.breakdown){bh='<div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.75rem"><div style="font-size:.7rem;color:var(--muted)">Price Fairness <span style="color:var(--accent)">'+d.breakdown.priceFairness+'/100</span></div><div style="font-size:.7rem;color:var(--muted)">Quality Signal <span style="color:var(--accent)">'+d.breakdown.qualitySignal+'/100</span></div><div style="font-size:.7rem;color:var(--muted)">Seller Trust <span style="color:var(--accent)">'+d.breakdown.sellerTrust+'/100</span></div><div style="font-size:.7rem;color:var(--muted)">Value Ratio <span style="color:var(--accent)">'+d.breakdown.valueRatio+'/100</span></div></div>'}
+if(d.deal){if(d.deal.cashback)dh+='<div class="row"><span class="label">cashback</span><span style="color:var(--green)">-$'+d.deal.cashback+'</span></div>';if(d.deal.coupon)dh+='<div class="row"><span class="label">coupon</span><span style="color:var(--green)">-$'+d.deal.coupon+'</span></div>';if(d.deal.shippingFee)dh+='<div class="row"><span class="label">shippingFee</span><span style="color:var(--red)">+$'+d.deal.shippingFee+'</span></div>'}
+document.getElementById("oracleResult").innerHTML='<div class="oh"><span style="font-size:.8rem;color:var(--muted)">Oracle Response'+lt+'</span><span class="badge '+(ok?'bg':'br')+'">'+(ok?'APPROVED':'REJECTED')+'</span></div><div style="font-size:.75rem;color:var(--muted);margin-bottom:.25rem">Value Score</div><div class="bw"><div class="bt"><div class="bf" style="width:'+d.valueScore+'%;background:'+bc+'"></div></div><span class="mono" style="font-size:.85rem;font-weight:700">'+d.valueScore+'/100</span></div>'+bh+'<div class="mono"><div class="sl">Price</div><div class="row"><span class="label">proposed</span><span>$'+s.proposed.toLocaleString()+'</span></div><div class="row"><span class="label">marketMedian</span><span>$'+d.median.toLocaleString()+'</span></div><div class="row"><span class="label">deviation</span><span>'+dev+'%</span></div>'+(d.effectivePrice&&d.effectivePrice!==s.proposed?'<div class="row"><span class="label">effectivePrice</span><span>$'+d.effectivePrice.toLocaleString()+'</span></div>':'')+dh+'<div class="sl">Quality</div><div class="row"><span class="label">productRating</span><span>'+d.rating+'/5</span></div><div class="row"><span class="label">reviewCount</span><span>'+d.reviews.toLocaleString()+'</span></div><div class="row"><span class="label">returnRate</span><span>'+d.returnRate+'%</span></div><div class="sl">Trust</div><div class="row"><span class="label">sellerScore</span><span>'+d.seller+'/5.0</span></div>'+(d.reviewStats?'<div class="row"><span class="label">agentReviews</span><span>'+d.reviewStats.count+' reviews ('+d.reviewStats.overall+'/5)</span></div>':'')+'<hr><div class="row"><span class="label">verdict</span><span style="text-align:right;max-width:60%">'+d.reason+'</span></div></div>'}
+function render(){var b=document.getElementById("scenarioBtns"),h='';for(var i=0;i<scenarios.length;i++){h+='<button class="sbn '+(i===active?'active':'')+'" onclick="setActive('+i+')">'+scenarios[i].product+' &#8212; $'+scenarios[i].proposed.toLocaleString()+'</button>'}b.innerHTML=h;var s=scenarios[active];if(apiOk){document.getElementById("oracleResult").innerHTML='<div style="text-align:center;color:var(--muted);padding:2rem">Querying oracle...</div>';fetchAPI(s).then(function(r){if(r&&!r.error){renderResult(s,{median:r.referencePrice,seller:(r.seller.score*5).toFixed(2),rating:r.product.rating,reviews:r.product.reviewCount,returnRate:r.product.returnRate,valueScore:r.valueScore,result:r.approved?'approved':'rejected',reason:r.reason,breakdown:r.breakdown,effectivePrice:r.effectivePrice,deal:r.deal,reviewStats:r.seller.reviewStats,live:true})}else{renderResult(s,Object.assign({},s.fallback,{live:false}))}})}else{renderResult(s,Object.assign({},s.fallback,{live:false}))}}
+function setActive(i){active=i;render()}
 render();
-</script>
-
-</body>
-</html>
+</script></body></html>
