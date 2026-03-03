@@ -8,6 +8,8 @@ ValueOracle is a verifiable commerce oracle powered by Chainlink CRE that protec
 ## Links
 
 **Live Website:** https://valueoracle.com  
+**Decision API (Railway):** https://valueoracle-api.up.railway.app  
+**API Health:** https://valueoracle-api.up.railway.app/health  
 **Demo Video:** (link gelecek)
 
 > Built for [Convergence: A Chainlink Hackathon](https://chain.link/hackathon) — CRE & AI + Privacy Tracks
