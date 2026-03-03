@@ -58,7 +58,7 @@ flowchart LR
     Engine --- MC
     Engine --- SS
     Engine -->|"valueScore + verdict"| CRE
-    CRE -->|"fulfillDecision()"| Contract
+    CRE -->|"fulfillOracleDecision()"| Contract
     Contract -->|"✅ / ❌"| Agent
 ```
 
