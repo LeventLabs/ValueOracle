@@ -1,27 +1,47 @@
-# Hello World (TypeScript)
+# ValueOracle CRE Workflow (purchase-guard)
 
-This template provides a blank TypeScript workflow example. It aims to give a starting point for writing a workflow from scratch and to get started with local simulation.
+This package contains the Chainlink CRE workflow implementation for ValueOracle.
 
-Steps to run the example
+## What this folder does
 
-## 1. Update .env file
+- `main.ts`: decodes `PurchaseRequested` logs and evaluates purchases through the decision API.
+- `workflow.yaml`: CRE CLI target settings (staging/production artifact config).
+- `config.staging.json`: local simulation config (API URL, contract address, chain selector).
 
-You need to add a private key to env file. This is specifically required if you want to simulate chain writes. For that to work the key should be valid and funded.
-If your workflow does not do any chain write then you can just put any dummy key as a private key. e.g.
-```
-CRE_ETH_PRIVATE_KEY=0000000000000000000000000000000000000000000000000000000000000001
-```
+## Important responsibility split
 
-## 2. Install dependencies
+- `valueoracle-cre/purchase-guard/main.ts` is the TypeScript evaluation workflow used for simulation and workflow logic.
+- `cre/workflow.yaml` is the declarative CRE flow that performs onchain writes:
+  - `fulfillOracleDecision(bytes32,bool,uint256)`
+  - `fulfillConfidentialDecision(bytes32,bool,uint256)`
+
+This split is intentional and matches the demo architecture.
+
+## Local simulation
+
+1. Start decision API from project root:
+
 ```bash
+npm run api
+```
+
+2. Install CRE workflow dependencies:
+
+```bash
+cd valueoracle-cre/purchase-guard
 bun install
 ```
 
-## 3. Simulate the workflow
-Run the command from <b>project root directory</b>
+3. Run CRE simulation from project root:
 
 ```bash
-cre workflow simulate <path-to-workflow> --target=staging-settings
+cre workflow simulate purchase-guard --non-interactive --trigger-index 0 \
+  --evm-tx-hash <TX_HASH> --evm-event-index 0 --target staging-settings
 ```
 
-It is recommended to look into other existing examples to see how to write a workflow. You can generate them by running the `cre init` command.
+## Tests
+
+```bash
+cd valueoracle-cre/purchase-guard
+bun test
+```

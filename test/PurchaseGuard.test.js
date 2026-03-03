@@ -76,6 +76,12 @@ describe("PurchaseGuard", function () {
       await expect(guard.connect(oracle).fulfillOracleDecision(requestId, true, 1100))
         .to.be.revertedWithCustomError(guard, "AlreadyFulfilled");
     });
+
+    it("reverts for unknown requestId", async function () {
+      const fakeRequestId = ethers.keccak256(ethers.toUtf8Bytes("does-not-exist"));
+      await expect(guard.connect(oracle).fulfillOracleDecision(fakeRequestId, true, 1100))
+        .to.be.revertedWithCustomError(guard, "RequestNotFound");
+    });
   });
 
   describe("access control", function () {
@@ -178,6 +184,19 @@ describe("PurchaseGuard", function () {
       expect(req.referencePrice).to.equal(1095);
     });
 
+    it("reverts confidential fulfillment for unknown requestId", async function () {
+      const fakeRequestId = ethers.keccak256(ethers.toUtf8Bytes("missing-confidential"));
+      await expect(guard.connect(oracle).fulfillConfidentialDecision(fakeRequestId, true, 1095))
+        .to.be.revertedWithCustomError(guard, "RequestNotFound");
+    });
+
+    it("reverts reveal before fulfillment", async function () {
+      const tx = await guard.connect(agent).requestConfidentialPurchase(intentHash);
+      const id = await extractRequestId(tx, "ConfidentialPurchaseRequested");
+      await expect(guard.connect(agent).revealPurchase(id, "laptop-001", 1100, "seller-42", salt))
+        .to.be.revertedWithCustomError(guard, "NotFulfilled");
+    });
+
     it("requester can reveal after fulfillment", async function () {
       const tx = await guard.connect(agent).requestConfidentialPurchase(intentHash);
       const id = await extractRequestId(tx, "ConfidentialPurchaseRequested");
@@ -193,6 +212,7 @@ describe("PurchaseGuard", function () {
     it("reverts reveal with wrong data", async function () {
       const tx = await guard.connect(agent).requestConfidentialPurchase(intentHash);
       const id = await extractRequestId(tx, "ConfidentialPurchaseRequested");
+      await guard.connect(oracle).fulfillConfidentialDecision(id, true, 1095);
 
       await expect(guard.connect(agent).revealPurchase(id, "laptop-001", 9999, "seller-42", salt))
         .to.be.revertedWithCustomError(guard, "InvalidReveal");

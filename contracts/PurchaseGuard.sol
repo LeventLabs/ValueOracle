@@ -59,6 +59,8 @@ contract PurchaseGuard {
     error InvalidRating();
     error InvalidReveal();
     error AlreadyRevealed();
+    error RequestNotFound();
+    error NotFulfilled();
 
     modifier onlyOracle() { if (msg.sender != oracle) revert Unauthorized(); _; }
     modifier onlyOwner()  { if (msg.sender != owner)  revert Unauthorized(); _; }
@@ -112,6 +114,7 @@ contract PurchaseGuard {
     /// @notice Oracle fulfills confidential purchase decision
     function fulfillConfidentialDecision(bytes32 requestId, bool approved, uint256 referencePrice) external onlyOracle {
         ConfidentialRequest storage req = confidentialRequests[requestId];
+        if (req.requester == address(0)) revert RequestNotFound();
         if (req.fulfilled) revert AlreadyFulfilled();
 
         req.fulfilled = true;
@@ -135,7 +138,9 @@ contract PurchaseGuard {
         bytes32 salt
     ) external {
         ConfidentialRequest storage req = confidentialRequests[requestId];
+        if (req.requester == address(0)) revert RequestNotFound();
         if (req.requester != msg.sender) revert Unauthorized();
+        if (!req.fulfilled) revert NotFulfilled();
         if (req.revealed) revert AlreadyRevealed();
 
         bytes32 computed = keccak256(abi.encodePacked(itemId, proposedPrice, sellerId, salt));
@@ -148,6 +153,7 @@ contract PurchaseGuard {
     /// @notice Oracle delivers the value verdict (standard mode)
     function fulfillOracleDecision(bytes32 requestId, bool approved, uint256 referencePrice) external onlyOracle {
         PurchaseRequest storage req = requests[requestId];
+        if (req.requester == address(0)) revert RequestNotFound();
         if (req.fulfilled) revert AlreadyFulfilled();
 
         req.fulfilled = true;

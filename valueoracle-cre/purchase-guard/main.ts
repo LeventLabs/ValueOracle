@@ -34,7 +34,7 @@ type EvaluationResult = {
 
 // Decode PurchaseRequested event:
 // event PurchaseRequested(bytes32 indexed requestId, string itemId, uint256 proposedPrice, string sellerId, address requester)
-const decodePurchaseEvent = (log: EVMLog) => {
+export const decodePurchaseEvent = (log: EVMLog) => {
   const requestId = bytesToHex(log.topics[1]);
 
   // Non-indexed params: (string itemId, uint256 proposedPrice, string sellerId, address requester)
@@ -52,7 +52,7 @@ const decodePurchaseEvent = (log: EVMLog) => {
   };
 };
 
-const evaluatePurchase = (
+export const evaluatePurchase = (
   sendRequester: HTTPSendRequester,
   config: Config,
   purchase: { itemId: string; price: number; sellerId: string }
@@ -86,7 +86,7 @@ const evaluatePurchase = (
 };
 
 // Handler: triggered by PurchaseRequested event on PurchaseGuard contract
-const onPurchaseRequested = (runtime: Runtime<Config>, log: EVMLog): string => {
+export const onPurchaseRequested = (runtime: Runtime<Config>, log: EVMLog): string => {
   const purchase = decodePurchaseEvent(log);
 
   runtime.log(
@@ -119,13 +119,16 @@ const onPurchaseRequested = (runtime: Runtime<Config>, log: EVMLog): string => {
   ].join(" | ");
 
   runtime.log(`Purchase evaluation complete: ${summary}`);
+  runtime.log(
+    "Workflow responsibility: this TypeScript workflow evaluates and logs decision data. Onchain fulfillment is handled by cre/workflow.yaml action fulfill_decision."
+  );
 
   return result.approved
     ? `APPROVE: score ${result.valueScore}/100`
     : `${result.verdict}: score ${result.valueScore}/100 — ${result.reason}`;
 };
 
-const initWorkflow = (config: Config) => {
+export const initWorkflow = (config: Config) => {
   const network = getNetwork({
     chainFamily: "evm",
     chainSelectorName: config.chainSelectorName,

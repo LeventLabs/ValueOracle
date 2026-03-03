@@ -1,5 +1,5 @@
 {
   "apiUrl": "https://valueoracle-api.onrender.com",
-  "contractAddress": "0x80891AD6Ea08feC97F6D14eb817a20c5652f5777",
+  "contractAddress": "0xfDB5020163742C340AAebAade840078CC557e1a1",
   "chainSelectorName": "ethereum-testnet-sepolia"
 }

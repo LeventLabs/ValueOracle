@@ -4,8 +4,13 @@
 
 ValueOracle is a verifiable commerce oracle powered by Chainlink CRE that protects autonomous agents from overpaying, fraud, and price manipulation. Think of Chainlink price feeds — but for real-world product decisions.
 
-> Built for [Convergence: A Chainlink Hackathon](https://chain.link/hackathon) — CRE & AI + Privacy Tracks
+---
+## Links
 
+**Live Website:** https://valueoracle.com  
+**Demo Video:** (link gelecek)
+
+> Built for [Convergence: A Chainlink Hackathon](https://chain.link/hackathon) — CRE & AI + Privacy Tracks
 ---
 
 ## Problem
@@ -69,7 +74,7 @@ flowchart LR
 | Component | Technology |
 |---|---|
 | Smart Contract | Solidity (Sepolia) |
-| Contract Address | [`0x80891AD6Ea08feC97F6D14eb817a20c5652f5777`](https://sepolia.etherscan.io/address/0x80891AD6Ea08feC97F6D14eb817a20c5652f5777) |
+| Contract Address | [`0xfDB5020163742C340AAebAade840078CC557e1a1`](https://sepolia.etherscan.io/address/0xfDB5020163742C340AAebAade840078CC557e1a1) |
 | Oracle Layer | Chainlink CRE |
 | Privacy | Confidential HTTP + Commit-Reveal |
 | Decision API | Node.js |
