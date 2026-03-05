@@ -7,10 +7,12 @@ ValueOracle is a verifiable commerce oracle powered by Chainlink CRE that protec
 ---
 ## Links
 
-**Live Website:** https://valueoracle.com  
+**Live Website:** https://valueoracle.com 
+**YouTube Demo:** https://youtu.be/dYp4lH2XHhc 
 **Decision API (Railway):** https://valueoracle-api.up.railway.app  
 **API Health:** https://valueoracle-api.up.railway.app/health  
 **Live Demo:** https://valueoracle.com/#demo
+
 
 > Built for [Convergence: A Chainlink Hackathon](https://chain.link/hackathon) — CRE & AI + Privacy Tracks
 ---
@@ -202,6 +204,7 @@ $ cre workflow simulate purchase-guard --non-interactive --trigger-index 0 \
 ## Live Demo
 
 [Open interactive demo](https://valueoracle.com/#demo)
+[Watch YouTube demo](https://youtu.be/dYp4lH2XHhc)
 
 The demo shows:
 1. Agent submits purchase intent
