@@ -35,8 +35,7 @@ type EvaluationResult = {
   reason: string;
 };
 
-// Decode PurchaseRequested event:
-// event PurchaseRequested(bytes32 indexed requestId, string itemId, uint256 proposedPrice, string sellerId, address requester)
+// Decode PurchaseRequested event
 export const decodePurchaseEvent = (log: EVMLog) => {
   const requestId = bytesToHex(log.topics[1]);
 
@@ -88,8 +87,7 @@ export const evaluatePurchase = (
   };
 };
 
-// Write oracle decision back onchain via CRE KeystoneForwarder → PurchaseGuard.onReport()
-// Report format: abi.encode(bytes32 requestId, bool approved, uint256 referencePrice, bool isConfidential)
+// Write decision onchain via KeystoneForwarder → onReport()
 function writeDecisionOnchain(
   runtime: Runtime<Config>,
   evmClient: EVMClient,
@@ -128,7 +126,7 @@ function writeDecisionOnchain(
   }
 }
 
-// Handler: triggered by PurchaseRequested event on PurchaseGuard contract
+// Standard purchase handler
 export const onPurchaseRequested = (runtime: Runtime<Config>, log: EVMLog): string => {
   const purchase = decodePurchaseEvent(log);
 
@@ -179,13 +177,11 @@ export const onPurchaseRequested = (runtime: Runtime<Config>, log: EVMLog): stri
     : `${result.verdict}: score ${result.valueScore}/100 — ${result.reason}`;
 };
 
-// Confidential purchase handler — triggered by ConfidentialPurchaseRequested event.
-// Uses ConfidentialHTTPClient: request executes inside a secure enclave,
-// secrets injected via Vault DON template syntax, response AES-GCM encrypted.
+// Confidential purchase handler
 export const onConfidentialPurchaseRequested = (runtime: Runtime<Config>, log: EVMLog): string => {
   const requestId = bytesToHex(log.topics[1]);
 
-  // Decode non-indexed params: (bytes32 intentHash, address requester)
+  // Decode non-indexed params
   const decoded = decodeAbiParameters(
     parseAbiParameters("bytes32 intentHash, address requester"),
     bytesToHex(log.data)
@@ -200,9 +196,7 @@ export const onConfidentialPurchaseRequested = (runtime: Runtime<Config>, log: E
 
   const confHTTPClient = new ConfidentialHTTPClient();
 
-  // Step 1: Resolve purchase details from intent cache.
-  // Agent caches details offchain (POST /intent) before submitting the confidential tx.
-  // This avoids hardcoding purchase details in the workflow body.
+  // Resolve purchase details from intent cache
   const httpClient = new HTTPClient();
   const intentData = httpClient
     .sendRequest(
@@ -231,8 +225,7 @@ export const onConfidentialPurchaseRequested = (runtime: Runtime<Config>, log: E
     `Intent resolved: item=${intentData.itemId} price=${intentData.price} seller=${intentData.sellerId}`
   );
 
-  // Step 2: Confidential HTTP — evaluate inside secure enclave with resolved details.
-  // The marketplaceApiKey is injected via Vault DON template syntax — never visible to DON nodes.
+  // Confidential HTTP evaluation
   const bodyStr = JSON.stringify({
     intentHash,
     itemId: intentData.itemId,
@@ -264,8 +257,7 @@ export const onConfidentialPurchaseRequested = (runtime: Runtime<Config>, log: E
     return `CONFIDENTIAL_ERROR: requestId=${requestId.slice(0, 12)}... status=${response.statusCode}`;
   }
 
-  // In production the response is AES-GCM encrypted — decrypt offchain.
-  // In simulation the CRE simulator returns plaintext.
+  // Response may be AES-GCM encrypted in production, plaintext in simulation
   const network = getNetwork({
     chainFamily: "evm",
     chainSelectorName: runtime.config.chainSelectorName,

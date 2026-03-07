@@ -25,9 +25,7 @@ triggers:
       eventSignature: "ConfidentialPurchaseRequested(bytes32,bytes32,address)"
 
 actions:
-  # ── Standard flow ──────────────────────────────────────────
-  # Implemented in TS: onPurchaseRequested() handler
-  # Uses HTTPClient — each node calls the API, consensus on response
+  # Standard flow (TS: onPurchaseRequested handler, HTTPClient with consensus)
 
   - id: evaluate_purchase
     type: http_request
@@ -54,12 +52,8 @@ actions:
       note: "CRE KeystoneForwarder calls onReport() via runtime.report() + evmClient.writeReport()"
       gasLimit: 300000
 
-  # ── Confidential flow ─────────────────────────────────────
-  # Implemented in TS: onConfidentialPurchaseRequested() handler
-  # Step 1: HTTPClient resolves purchase details from intent cache (GET /intent/:hash)
-  # Step 2: ConfidentialHTTPClient evaluates inside secure enclave
-  # Secrets injected via {{.marketplaceApiKey}} template (Vault DON)
-  # Response encrypted with AES-GCM (encryptOutput: true)
+  # Confidential flow (TS: onConfidentialPurchaseRequested handler)
+  # Resolves intent via HTTPClient, evaluates via ConfidentialHTTPClient
 
   - id: resolve_intent
     type: http_request
@@ -101,12 +95,12 @@ actions:
       note: "CRE KeystoneForwarder calls onReport() via runtime.report() + evmClient.writeReport()"
       gasLimit: 300000
 
-# Secrets managed via CRE Vault DON (threshold-encrypted, no single node can access)
+# Vault DON secrets (threshold-encrypted)
 secrets:
   - id: marketplaceApiKey
-    description: "API key for authenticated marketplace data access — injected in enclave only"
+    description: "Marketplace API key — injected in enclave only"
   - id: san_marino_aes_gcm_encryption_key
-    description: "AES-256 key for response encryption — responses encrypted before leaving enclave"
+    description: "AES-256 key for response encryption"
 
 errorHandling:
   retries: 3

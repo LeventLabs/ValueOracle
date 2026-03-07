@@ -1,6 +1,4 @@
-// Seller reputation service with onchain agent review integration.
-// Reads reviews from PurchaseGuard contract on Sepolia when RPC is available,
-// falls back to cached data otherwise.
+// Seller reputation with onchain review integration
 
 const { ethers } = require('ethers');
 
@@ -11,7 +9,7 @@ const sellers = {
   'seller-200': { score: 0.15, totalSales: 12 }
 };
 
-// Fallback review data — used when contract reads fail or no reviews exist onchain yet
+// Fallback data when contract reads fail
 const fallbackReviews = {
   'seller-42': [
     { quality: 5, delivery: 4, value: 5, item: 'laptop-001' },
@@ -50,7 +48,7 @@ function getContract() {
   }
 }
 
-// Simple TTL cache for onchain review fetches — avoids duplicate RPC calls
+// TTL cache to avoid duplicate RPC calls
 const reviewCache = new Map();
 const CACHE_TTL = 30000; // 30 seconds
 
@@ -114,7 +112,7 @@ async function getScore(sellerId) {
   const reviewStats = computeReviewStats(reviews);
   if (reviewStats) reviewStats.source = source;
 
-  // Blend base reputation with agent review data (30% weight when reviews exist)
+  // Blend with agent reviews (up to 30% weight)
   let finalScore = base.score;
   if (reviewStats && reviewStats.count >= 1) {
     const reviewScore = reviewStats.overall / 5;

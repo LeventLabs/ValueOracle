@@ -77,7 +77,7 @@ program
       console.log(`intent hash: ${intentHash}`);
       console.log(`salt (save this for reveal): ${salt}`);
 
-      // Cache purchase details offchain — CRE workflow will query by intentHash
+      // Cache intent for CRE lookup
       const apiUrl = process.env.DECISION_API_URL || 'http://localhost:3000';
       try {
         await fetch(`${apiUrl}/intent`, {

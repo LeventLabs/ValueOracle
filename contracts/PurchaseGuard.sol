@@ -1,19 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-/// @notice ERC165 interface detection
 interface IERC165 {
     function supportsInterface(bytes4 interfaceId) external view returns (bool);
 }
 
-/// @notice CRE KeystoneForwarder callback interface
+// CRE KeystoneForwarder callback
 interface IReceiver is IERC165 {
     function onReport(bytes calldata metadata, bytes calldata report) external;
 }
 
-/// @title PurchaseGuard
-/// @notice Onchain spending guard for autonomous agents with privacy-preserving purchase evaluation.
-///         Implements IReceiver to receive CRE workflow reports via KeystoneForwarder.
 contract PurchaseGuard is IReceiver {
     struct PurchaseRequest {
         string itemId;
@@ -27,11 +23,11 @@ contract PurchaseGuard is IReceiver {
     }
 
     struct ConfidentialRequest {
-        bytes32 intentHash;      // keccak256(itemId, price, sellerId, salt)
+        bytes32 intentHash;
         address requester;
         bool fulfilled;
         bool approved;
-        bool revealed;           // true after reveal phase
+        bool revealed;
         uint256 referencePrice;
         uint256 timestamp;
     }
@@ -85,10 +81,8 @@ contract PurchaseGuard is IReceiver {
         owner = msg.sender;
     }
 
-    // ── IReceiver: CRE workflow writes back via KeystoneForwarder ────────
-
-    /// @notice Called by KeystoneForwarder after DON consensus.
-    ///         Report format: abi.encode(bytes32 requestId, bool approved, uint256 referencePrice, bool isConfidential)
+    // Called by KeystoneForwarder after DON consensus
+    // Report: abi.encode(requestId, approved, referencePrice, isConfidential)
     function onReport(bytes calldata, bytes calldata report) external override {
         if (msg.sender != forwarder) revert InvalidForwarder();
 
@@ -107,8 +101,6 @@ contract PurchaseGuard is IReceiver {
     function supportsInterface(bytes4 interfaceId) external pure override returns (bool) {
         return interfaceId == type(IReceiver).interfaceId || interfaceId == type(IERC165).interfaceId;
     }
-
-    // ── Standard purchase request (public intent) ───────────────────────
 
     function requestPurchase(
         string calldata itemId,
@@ -131,8 +123,6 @@ contract PurchaseGuard is IReceiver {
         emit PurchaseRequested(requestId, itemId, proposedPrice, sellerId, msg.sender);
     }
 
-    // ── Confidential purchase — only hash onchain ───────────────────────
-
     function requestConfidentialPurchase(bytes32 intentHash) external returns (bytes32 requestId) {
         requestId = keccak256(abi.encodePacked(intentHash, msg.sender, block.timestamp, _nonce++));
 
@@ -149,8 +139,7 @@ contract PurchaseGuard is IReceiver {
         emit ConfidentialPurchaseRequested(requestId, intentHash, msg.sender);
     }
 
-    // ── Oracle fulfillment (legacy — kept for direct oracle calls) ──────
-
+    // Legacy direct oracle calls (kept for backward compat)
     function fulfillOracleDecision(bytes32 requestId, bool approved, uint256 referencePrice) external onlyOracle {
         _fulfillStandard(requestId, approved, referencePrice);
     }
@@ -158,8 +147,6 @@ contract PurchaseGuard is IReceiver {
     function fulfillConfidentialDecision(bytes32 requestId, bool approved, uint256 referencePrice) external onlyOracle {
         _fulfillConfidential(requestId, approved, referencePrice);
     }
-
-    // ── Reveal phase ────────────────────────────────────────────────────
 
     function revealPurchase(
         bytes32 requestId,
@@ -180,8 +167,6 @@ contract PurchaseGuard is IReceiver {
         req.revealed = true;
         emit ConfidentialPurchaseRevealed(requestId, itemId, proposedPrice, sellerId);
     }
-
-    // ── Agent reviews ───────────────────────────────────────────────────
 
     function submitReview(
         bytes32 requestId,
@@ -211,8 +196,6 @@ contract PurchaseGuard is IReceiver {
 
         emit ReviewSubmitted(requestId, req.itemId, req.sellerId, qualityRating, deliveryRating, valueRating, msg.sender);
     }
-
-    // ── Internal fulfillment logic ──────────────────────────────────────
 
     function _fulfillStandard(bytes32 requestId, bool approved, uint256 referencePrice) internal {
         PurchaseRequest storage req = requests[requestId];
@@ -249,15 +232,11 @@ contract PurchaseGuard is IReceiver {
         }
     }
 
-    // ── View functions ──────────────────────────────────────────────────
-
     function getReview(bytes32 requestId) external view returns (AgentReview memory) { return reviews[requestId]; }
     function getItemReviewCount(string calldata itemId) external view returns (uint256) { return itemReviews[itemId].length; }
     function getSellerReviewCount(string calldata sellerId) external view returns (uint256) { return sellerReviews[sellerId].length; }
     function getConfidentialRequest(bytes32 requestId) external view returns (ConfidentialRequest memory) { return confidentialRequests[requestId]; }
     function getRequest(bytes32 requestId) external view returns (PurchaseRequest memory) { return requests[requestId]; }
-
-    // ── Admin ───────────────────────────────────────────────────────────
 
     function setOracle(address _oracle) external onlyOwner { oracle = _oracle; }
     function setForwarder(address _forwarder) external onlyOwner { forwarder = _forwarder; }

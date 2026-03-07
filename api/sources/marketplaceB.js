@@ -1,5 +1,5 @@
-// Marketplace B adapter — uses DummyJSON Products API as a real external source.
-// Falls back to cached prices if the API is unreachable.
+// Marketplace B — DummyJSON Products API
+// Falls back to cached prices if unreachable.
 
 const DUMMYJSON_MAP = {
   'laptop-001': 1,    // maps to DummyJSON product ID
@@ -10,8 +10,7 @@ const DUMMYJSON_MAP = {
   'cable-001': 5
 };
 
-// Price multipliers to map DummyJSON's product prices to our domain range.
-// DummyJSON returns real product data; we scale to match our marketplace context.
+// Price multipliers — DummyJSON prices scaled to our domain
 const SCALE = {
   'laptop-001': 110,
   'phone-001': 60,

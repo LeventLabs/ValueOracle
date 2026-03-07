@@ -1,4 +1,4 @@
-// Mock adapter for Marketplace A (primary source — includes product metadata + deals)
+// Marketplace A (mock — primary source with product metadata + deals)
 
 const prices = {
   'laptop-001': 1049,

@@ -10,8 +10,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// In-memory intent cache — agent stores purchase details offchain keyed by intentHash.
-// CRE confidential workflow queries this instead of hardcoding purchase details.
+// Intent cache for confidential purchases
 const intentCache = new Map();
 
 const WEIGHTS = {
@@ -26,9 +25,7 @@ const THRESHOLDS = {
   caution: 40
 };
 
-// LLM-powered purchase analysis via Groq (LLaMA 3.3 70B).
-// Adds natural-language reasoning to the rule-based value score.
-// Gracefully skips if GROQ_API_KEY is not set.
+// Groq LLM analysis (optional, skips if no API key)
 async function getAIAnalysis({ itemId, price, effectivePrice, referencePrice, valueScore, verdict, seller, product, deal, breakdown }) {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) return null;
@@ -77,7 +74,7 @@ function median(arr) {
   return sorted[Math.floor(sorted.length / 2)];
 }
 
-// Flag sources that deviate >40% from median — potential manipulation or stale data
+// Flag sources deviating >40% from median
 function detectOutliers(sources, medianPrice) {
   const OUTLIER_THRESHOLD = 0.4;
   return sources.map(s => {
@@ -168,7 +165,7 @@ app.post('/evaluate', async (req, res) => {
     const productData = marketplaceA.getProductData(itemId);
     const dealData = marketplaceA.getDealData(itemId);
 
-    // Effective price = proposed - cashback - coupon + shipping
+    // Effective price after deals
     const effectivePrice = price - dealData.cashback - dealData.coupon + dealData.shippingFee;
 
     const { valueScore, breakdown } = calculateValueScore({
@@ -180,14 +177,14 @@ app.post('/evaluate', async (req, res) => {
       sellerScoreVal: seller.score
     });
 
-    // Hard-cut: reject if seller trust is critically low regardless of score
+    // Block low-trust sellers regardless of score
     const sellerBlocked = seller.score < 0.4;
     const approved = !sellerBlocked && valueScore >= THRESHOLDS.approve;
     const verdict = approved ? 'APPROVE' : valueScore >= THRESHOLDS.caution ? 'CAUTION' : 'REJECT';
     const deviation = ((effectivePrice - referencePrice) / referencePrice * 100).toFixed(1);
     const reason = buildReason(approved, breakdown, deviation, seller, productData, valueScore, sellerBlocked);
 
-    // LLM analysis — runs in parallel, non-blocking, optional
+    // LLM analysis (non-blocking)
     const aiAnalysis = await getAIAnalysis({
       itemId, price, effectivePrice, referencePrice, valueScore, verdict,
       seller, product: productData, deal: dealData, breakdown
@@ -209,9 +206,7 @@ app.post('/evaluate', async (req, res) => {
   }
 });
 
-// Confidential evaluation — receives plaintext offchain via Confidential HTTP.
-// In production, this runs inside a CRE secure enclave. The intentHash links
-// the offchain evaluation to the onchain commitment without revealing purchase details.
+// Confidential evaluation endpoint
 app.post('/evaluate-confidential', async (req, res) => {
   try {
     const { itemId, price, sellerId, intentHash } = req.body;
@@ -256,8 +251,7 @@ app.post('/evaluate-confidential', async (req, res) => {
     const approved = !sellerBlocked && valueScore >= THRESHOLDS.approve;
     const verdict = approved ? 'APPROVE' : valueScore >= THRESHOLDS.caution ? 'CAUTION' : 'REJECT';
 
-    // Response is encrypted in transit via Confidential HTTP — only the oracle enclave sees it.
-    // The onchain fulfillment only writes: (requestId, approved, referencePrice) — no purchase details.
+    // Encrypted in transit via Confidential HTTP
     res.json({
       confidential: true,
       intentHash,
@@ -281,8 +275,6 @@ app.get('/reviews/item/:itemId', (_req, res) => {
   res.json({ itemId: _req.params.itemId, reviews });
 });
 
-// Cache purchase details offchain — agent calls this before submitting confidential tx.
-// CRE workflow retrieves details by intentHash instead of hardcoding them.
 app.post('/intent', (req, res) => {
   const { intentHash, itemId, price, sellerId } = req.body;
   if (!intentHash || !itemId || price === undefined || !sellerId) {

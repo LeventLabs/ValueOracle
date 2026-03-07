@@ -1,6 +1,5 @@
-// Marketplace C adapter — uses FakeStoreAPI as a real external source.
-// Maps item categories to FakeStoreAPI product searches.
-// Falls back to cached prices if the API is unreachable.
+// Marketplace C — FakeStoreAPI
+// Falls back to cached prices if unreachable.
 
 const FAKESTORE_MAP = {
   'laptop-001': 9,     // WD 2TB Elements (electronics) — scaled to laptop range
@@ -11,7 +10,7 @@ const FAKESTORE_MAP = {
   'cable-001': 8       // Pierced Owl Rose Gold (jewelery) — low price item
 };
 
-// Scale FakeStoreAPI prices to our marketplace domain range.
+// Scale FakeStoreAPI prices to our domain
 const SCALE = {
   'laptop-001': 18,
   'phone-001': 8.5,
