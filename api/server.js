@@ -299,7 +299,9 @@ app.get('/intent/:intentHash', (req, res) => {
 });
 
 app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', service: 'ValueOracle Decision Engine' });
+  const rpc = process.env.SEPOLIA_RPC_URL ? 'set' : 'missing';
+  const addr = process.env.CONTRACT_ADDRESS || 'missing';
+  res.json({ status: 'ok', service: 'ValueOracle Decision Engine', chain: { rpc, contract: addr } });
 });
 
 const PORT = process.env.PORT || 3000;
