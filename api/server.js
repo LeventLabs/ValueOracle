@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+require('dotenv').config();
 const marketplaceA = require('./sources/marketplaceA');
 const marketplaceB = require('./sources/marketplaceB');
 const marketplaceC = require('./sources/marketplaceC');
