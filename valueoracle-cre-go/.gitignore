@@ -1,0 +1,10 @@
+# Build artifacts
+*.exe
+*.wasm
+*.out
+
+# Go
+vendor/
+
+# CRE
+.cre_build_tmp*

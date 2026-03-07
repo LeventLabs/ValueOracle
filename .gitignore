@@ -32,6 +32,7 @@ Thumbs.db
 # IDEs
 .vscode/
 .idea/
+.kiro/
 *.suo
 *.iml
 .project
