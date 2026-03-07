@@ -271,8 +271,8 @@ app.post('/evaluate-confidential', async (req, res) => {
 });
 
 app.get('/reviews/seller/:sellerId', async (req, res) => {
-  const reviews = await sellerScore.getSellerReviews(req.params.sellerId);
   const score = await sellerScore.getScore(req.params.sellerId);
+  const reviews = await sellerScore.getSellerReviews(req.params.sellerId);
   res.json({ sellerId: req.params.sellerId, reviews, stats: score.reviewStats });
 });
 

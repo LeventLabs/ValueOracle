@@ -50,8 +50,15 @@ function getContract() {
   }
 }
 
+// Simple TTL cache for onchain review fetches — avoids duplicate RPC calls
+const reviewCache = new Map();
+const CACHE_TTL = 30000; // 30 seconds
+
 // Try reading reviews from onchain, fall back to cached data
 async function fetchOnchainReviews(sellerId) {
+  const cached = reviewCache.get(sellerId);
+  if (cached && Date.now() - cached.ts < CACHE_TTL) return cached.data;
+
   const c = getContract();
   if (!c) return null;
 
@@ -74,6 +81,7 @@ async function fetchOnchainReviews(sellerId) {
         onchain: true
       });
     }
+    reviewCache.set(sellerId, { data: reviews, ts: Date.now() });
     return reviews;
   } catch (err) {
     console.error(`Onchain review fetch failed for ${sellerId}:`, err.message);
