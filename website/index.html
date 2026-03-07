@@ -144,6 +144,7 @@ footer a{color:var(--al);transition:color .2s}footer a:hover{color:#fff}
 <hr>
 <div class="row"><span class="label">Reference Price</span><span id="dRef">&mdash;</span></div>
 <div class="row"><span class="label">Reason</span><span id="dReason" style="font-size:.8rem">&mdash;</span></div>
+<div id="aiBox" style="display:none;margin-top:.75rem;padding:.75rem;background:#0d1117;border:1px solid #21262d;border-radius:8px;font-size:.8rem;line-height:1.5"><span style="color:var(--al);font-size:.7rem;text-transform:uppercase;letter-spacing:.05em">AI Analysis (LLaMA 3.3 70B)</span><div id="dAI" style="margin-top:.35rem;color:var(--muted)"></div></div>
 <div id="apiStatus" style="font-size:.7rem;color:var(--muted);margin-top:.75rem;text-align:right"></div>
 </div>
 </div>
@@ -247,6 +248,7 @@ const bd=data.breakdown;
 setBar('Price',bd.priceFairness);setBar('Quality',bd.qualitySignal);setBar('Seller',bd.sellerTrust);setBar('Value',bd.valueRatio);
 $('dRef').textContent='$'+data.referencePrice.toLocaleString();
 $('dReason').textContent=data.reason;
+if(data.aiAnalysis){$('aiBox').style.display='block';$('dAI').textContent=data.aiAnalysis}else{$('aiBox').style.display='none'}
 $('apiStatus').textContent=source;
 }
 function setBar(n,v){$('bf'+n).style.width=v+'%';$('bv'+n).textContent=v}

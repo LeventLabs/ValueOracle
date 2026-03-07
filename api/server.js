@@ -25,6 +25,51 @@ const THRESHOLDS = {
   caution: 40
 };
 
+// LLM-powered purchase analysis via Groq (LLaMA 3.3 70B).
+// Adds natural-language reasoning to the rule-based value score.
+// Gracefully skips if GROQ_API_KEY is not set.
+async function getAIAnalysis({ itemId, price, effectivePrice, referencePrice, valueScore, verdict, seller, product, deal, breakdown }) {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) return null;
+
+  const prompt = `You are a purchase advisor for autonomous AI agents. Analyze this purchase decision in 2-3 sentences.
+
+Item: ${itemId}, Proposed: $${price}, Effective: $${effectivePrice} (after cashback/coupons/shipping), Market median: $${referencePrice}
+Seller score: ${seller.score}/1.0 (${seller.totalSales} sales), Product: ${product.rating}/5 stars (${product.reviewCount} reviews, ${product.returnRate}% returns)
+Deal: cashback=$${deal.cashback}, coupon=$${deal.coupon}, shipping=$${deal.shippingFee}
+Score breakdown: price=${breakdown.priceFairness}, quality=${breakdown.qualitySignal}, trust=${breakdown.sellerTrust}, value=${breakdown.valueRatio}
+Engine verdict: ${verdict} (score ${valueScore}/100)
+
+Give a brief, actionable analysis. Be specific about why this is or isn't a good deal.`;
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 150,
+        temperature: 0.3
+      }),
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content?.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
 function median(arr) {
   const sorted = [...arr].sort((a, b) => a - b);
   return sorted[Math.floor(sorted.length / 2)];
@@ -140,6 +185,12 @@ app.post('/evaluate', async (req, res) => {
     const deviation = ((effectivePrice - referencePrice) / referencePrice * 100).toFixed(1);
     const reason = buildReason(approved, breakdown, deviation, seller, productData, valueScore, sellerBlocked);
 
+    // LLM analysis — runs in parallel, non-blocking, optional
+    const aiAnalysis = await getAIAnalysis({
+      itemId, price, effectivePrice, referencePrice, valueScore, verdict,
+      seller, product: productData, deal: dealData, breakdown
+    });
+
     res.json({
       approved, verdict, valueScore, referencePrice, reason, breakdown,
       sources: sourcesWithOutliers,
@@ -147,7 +198,8 @@ app.post('/evaluate', async (req, res) => {
       effectivePrice: Math.round(effectivePrice),
       deal: dealData,
       product: { rating: productData.rating, reviewCount: productData.reviewCount, returnRate: productData.returnRate },
-      seller: { score: seller.score, totalSales: seller.totalSales, reviewStats: seller.reviewStats || null }
+      seller: { score: seller.score, totalSales: seller.totalSales, reviewStats: seller.reviewStats || null },
+      aiAnalysis
     });
   } catch (err) {
     console.error('POST /evaluate failed:', err.message);

@@ -82,7 +82,7 @@ flowchart LR
 | Contract Address | [`0x22BEa4788e8AaFF94D3D575AA23Ec429AD198fFc`](https://sepolia.etherscan.io/address/0x22BEa4788e8AaFF94D3D575AA23Ec429AD198fFc) |
 | Oracle Layer | Chainlink CRE |
 | Privacy | Confidential HTTP (TS SDK, enclave) + Commit-Reveal |
-| Decision API | Node.js |
+| Decision API | Node.js + Groq LLM (LLaMA 3.3 70B) |
 | Agent Trigger | CLI / Script |
 | Data Sources | 1 real API (DummyJSON) + 2 mock marketplace adapters |
 
@@ -101,7 +101,7 @@ ValueOracle/
 │       ├── config.staging.json    # Workflow config (API URL, contract, chain selector)
 │       └── workflow.yaml          # CRE CLI target settings
 ├── api/
-│   ├── server.js                  # Decision engine API
+│   ├── server.js                  # Decision engine API + LLM analysis (Groq)
 │   └── sources/                   # Marketplace data adapters
 ├── agent/
 │   └── cli.js                     # Agent CLI (buy, buy-private, reveal, review)
@@ -125,7 +125,7 @@ ValueOracle/
 | [`valueoracle-cre/secrets.yaml`](./valueoracle-cre/secrets.yaml) | Vault DON secrets config (API key + AES encryption key) |
 | [`cre/workflow.yaml`](./cre/workflow.yaml) | CRE workflow reference spec — standard HTTP + Confidential HTTP flows |
 | [`valueoracle-cre/purchase-guard/workflow.yaml`](./valueoracle-cre/purchase-guard/workflow.yaml) | CRE CLI workflow settings (staging/production targets) |
-| [`api/server.js`](./api/server.js) | Decision engine with `/evaluate` and `/evaluate-confidential` endpoints |
+| [`api/server.js`](./api/server.js) | Decision engine with `/evaluate`, `/evaluate-confidential` + LLM analysis (Groq) |
 | [`scripts/simulate.js`](./scripts/simulate.js) | End-to-end API simulation (6 scenarios) |
 
 ## Quick Start
@@ -177,6 +177,19 @@ sellerScore < 0.4   → ❌ BLOCKED (regardless of score)
 ```
 
 The engine calculates an effective price by factoring in cashback, coupons, and shipping fees before scoring. This means a slightly overpriced listing with a good coupon can still be approved.
+
+### AI-Powered Analysis
+
+On top of the rule-based value score, the decision engine sends evaluation data to an LLM (LLaMA 3.3 70B via Groq) for natural-language purchase analysis. The AI provides actionable reasoning — explaining *why* a purchase is or isn't a good deal in plain English. This runs as a non-blocking enhancement: if the LLM is unavailable, the rule-based engine still returns a decision.
+
+```json
+{
+  "verdict": "APPROVE",
+  "valueScore": 95,
+  "reason": "Fair price and trusted seller",
+  "aiAnalysis": "This laptop at $1,100 is a solid buy. The effective price drops to $1,048 after the $52 cashback, which is 4.6% below the $1,099 market median. The seller has strong trust (0.88) backed by 1,240 sales and consistent 4.67/5 agent reviews. No red flags."
+}
+```
 
 ## Demo Scenarios
 
