@@ -45,7 +45,7 @@ Give a brief, actionable analysis. Be specific about why this is or isn't a good
 
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
+    const timeout = setTimeout(() => controller.abort(), 8000);
 
     const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -66,7 +66,8 @@ Give a brief, actionable analysis. Be specific about why this is or isn't a good
     if (!res.ok) return null;
     const data = await res.json();
     return data.choices?.[0]?.message?.content?.trim() || null;
-  } catch {
+  } catch (err) {
+    console.error('AI analysis failed:', err.message || err);
     return null;
   }
 }
