@@ -29,16 +29,22 @@ This creates unacceptable financial risk in agent-driven commerce.
 
 ## Solution
 
-ValueOracle acts as a **decision oracle** between an agent's purchase intent and the actual transaction. Before any funds move, the oracle:
+ValueOracle is not a price comparison tool. Price comparison tells you *where it's cheapest* — ValueOracle tells you *whether you should buy at all*.
 
-1. Aggregates prices from multiple marketplace sources
-2. Detects price outliers via median deviation analysis
-3. Scores seller reputation (with agent review blending)
-4. Returns a verifiable **approve/reject** decision onchain
+It acts as a **multi-dimensional value oracle** between an agent's purchase intent and the actual transaction. Before any funds move, the oracle evaluates four dimensions:
+
+1. **Price fairness** (35%) — median reference price from multiple sources, outlier detection (>40% deviation flagged)
+2. **Product quality** (25%) — rating, review volume, return rate
+3. **Seller trust** (25%) — reputation score with agent review blending, hard-cut block below 0.4
+4. **Value ratio** (15%) — quality-per-dollar relative to market
+
+On top of this, the engine calculates an **effective price** (proposed - cashback - coupon + shipping) and runs an **LLM analysis** (LLaMA 3.3 70B) for natural-language reasoning. The result is a verifiable approve/reject decision written onchain.
+
+After purchase, agents submit **onchain reviews** (sybil-resistant) — building a collective trust network that makes future decisions smarter for every agent.
 
 ```
-Financial Oracle → token price
-ValueOracle     → real-world purchase decision
+Chainlink Price Feed → "ETH is $3,200"
+ValueOracle          → "Don't buy this laptop — seller trust is 0.30, price is 22% above median, and return rate is 18%"
 ```
 
 ## Architecture
