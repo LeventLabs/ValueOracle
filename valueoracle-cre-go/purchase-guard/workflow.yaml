@@ -1,0 +1,24 @@
+# ==========================================================================
+# CRE WORKFLOW SETTINGS FILE — Go Workflow
+# ==========================================================================
+# Workflow-specific settings for CRE CLI targets.
+# This Go workflow replaces the TypeScript version to add genuine
+# Confidential HTTP support via the Go CRE SDK.
+
+# ==========================================================================
+staging-settings:
+  user-workflow:
+    workflow-name: "purchase-guard-staging"
+  workflow-artifacts:
+    workflow-path: "./main.go"
+    config-path: "./config.staging.json"
+    secrets-path: "../secrets.yaml"
+
+# ==========================================================================
+production-settings:
+  user-workflow:
+    workflow-name: "purchase-guard-production"
+  workflow-artifacts:
+    workflow-path: "./main.go"
+    config-path: "./config.production.json"
+    secrets-path: "../secrets.yaml"

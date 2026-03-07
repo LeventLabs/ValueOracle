@@ -80,7 +80,7 @@ flowchart LR
 | Smart Contract | Solidity (Sepolia) |
 | Contract Address | [`0xfDB5020163742C340AAebAade840078CC557e1a1`](https://sepolia.etherscan.io/address/0xfDB5020163742C340AAebAade840078CC557e1a1) |
 | Oracle Layer | Chainlink CRE |
-| Privacy | Confidential HTTP + Commit-Reveal |
+| Privacy | Confidential HTTP (Go SDK, enclave) + Commit-Reveal |
 | Decision API | Node.js |
 | Agent Trigger | CLI / Script |
 | Data Sources | Mock marketplace APIs |
@@ -92,12 +92,17 @@ ValueOracle/
 ├── contracts/
 │   └── PurchaseGuard.sol          # ← Chainlink oracle consumer (standard + confidential)
 ├── cre/
-│   └── workflow.yaml              # ← CRE workflow definition (HTTP + Confidential HTTP)
-├── valueoracle-cre/
+│   └── workflow.yaml              # ← CRE workflow reference spec
+├── valueoracle-cre-go/            # ← Go CRE workflow (PRIVACY IMPLEMENTATION)
+│   ├── secrets.yaml               # Vault DON secrets (API key + AES encryption key)
 │   └── purchase-guard/
-│       ├── main.ts                # ← CRE TypeScript workflow (HTTPClient + consensus)
-│       ├── config.staging.json    # Workflow config (schedule, API URL)
+│       ├── main.go                # ← Go workflow: HTTPClient + ConfidentialHTTPClient
+│       ├── go.mod                 # Go module dependencies
+│       ├── config.staging.json    # Workflow config (API URL, contract, chain selector)
 │       └── workflow.yaml          # CRE CLI target settings
+├── valueoracle-cre/               # (Legacy TS workflow — replaced by Go version)
+│   └── purchase-guard/
+│       └── main.ts                # TypeScript version (standard HTTP only)
 ├── api/
 │   ├── server.js                  # Decision engine API
 │   └── sources/                   # Marketplace data adapters
@@ -119,9 +124,10 @@ ValueOracle/
 | File | Purpose |
 |---|---|
 | [`contracts/PurchaseGuard.sol`](./contracts/PurchaseGuard.sol) | Smart contract with standard + confidential purchase modes |
-| [`valueoracle-cre/purchase-guard/main.ts`](./valueoracle-cre/purchase-guard/main.ts) | CRE TypeScript workflow — HTTPClient POST to decision engine with consensus |
-| [`cre/workflow.yaml`](./cre/workflow.yaml) | CRE workflow definition — standard HTTP + Confidential HTTP flows |
-| [`valueoracle-cre/purchase-guard/workflow.yaml`](./valueoracle-cre/purchase-guard/workflow.yaml) | CRE CLI workflow settings (staging/production targets) |
+| [`valueoracle-cre-go/purchase-guard/main.go`](./valueoracle-cre-go/purchase-guard/main.go) | **Go CRE workflow — `confidentialhttp.Client` for enclave-based privacy** |
+| [`valueoracle-cre-go/secrets.yaml`](./valueoracle-cre-go/secrets.yaml) | Vault DON secrets config (API key + AES encryption key) |
+| [`cre/workflow.yaml`](./cre/workflow.yaml) | CRE workflow reference spec — standard HTTP + Confidential HTTP flows |
+| [`valueoracle-cre-go/purchase-guard/workflow.yaml`](./valueoracle-cre-go/purchase-guard/workflow.yaml) | CRE CLI workflow settings (staging/production targets) |
 | [`api/server.js`](./api/server.js) | Decision engine with `/evaluate` and `/evaluate-confidential` endpoints |
 | [`scripts/simulate.js`](./scripts/simulate.js) | End-to-end API simulation (6 scenarios) |
 
@@ -144,9 +150,8 @@ node api/server.js
 # Run end-to-end API simulation (6 scenarios)
 node scripts/simulate.js
 
-# Run CRE CLI workflow simulation (requires CRE CLI + Bun)
-cd valueoracle-cre
-bun install --cwd ./purchase-guard
+# Run Go CRE workflow simulation (requires CRE CLI + Go)
+cd valueoracle-cre-go
 cre workflow simulate purchase-guard --non-interactive --trigger-index 0 \
   --evm-tx-hash <TX_HASH> --evm-event-index 0 --target staging-settings
 cd ..
@@ -189,16 +194,29 @@ The engine calculates an effective price by factoring in cashback, coupons, and 
 
 ## CRE Workflow Simulation
 
-The workflow uses `EVMLogTrigger` to listen for `PurchaseRequested` events on Sepolia. When triggered, it fetches marketplace data via HTTP POST and returns a verifiable decision.
+The Go workflow uses `evm.LogTrigger` to listen for both `PurchaseRequested` and `ConfidentialPurchaseRequested` events on Sepolia.
+
+- **Standard purchases:** Uses `http.Client` — nodes reach consensus on the API response.
+- **Confidential purchases:** Uses `confidentialhttp.Client` — request executes inside a secure enclave with Vault DON secret injection and AES-GCM response encryption.
 
 ```
+$ cd valueoracle-cre-go
 $ cre workflow simulate purchase-guard --non-interactive --trigger-index 0 \
   --evm-tx-hash 0x6ea215fd...da489e --evm-event-index 0 --target staging-settings
 
-✓ Workflow compiled
+✓ Workflow compiled (Go → WASM)
 [USER LOG] Purchase request detected: requestId=0xf18a46c3... item=laptop-001 price=$1100 seller=seller-42
 [USER LOG] Purchase evaluation complete: requestId=0xf18a46c3... | verdict=APPROVE | score=95 | ref=$1095 | eff=$1048 | reason="Fair price and trusted seller"
 ✓ Workflow Simulation Result: "APPROVE: score 95/100"
+
+# Confidential purchase simulation (trigger-index 1):
+$ cre workflow simulate purchase-guard --non-interactive --trigger-index 1 \
+  --evm-tx-hash 0x... --evm-event-index 0 --target staging-settings
+
+✓ Workflow compiled (Go → WASM)
+[USER LOG] Confidential purchase request detected: requestId=0xab12... intentHash=0xcd34...
+[USER LOG] Confidential purchase evaluation complete: verdict=APPROVE score=95 (confidential)
+✓ Workflow Simulation Result: "APPROVE: score 95/100 (confidential)"
 ```
 
 ## Live Demo
@@ -229,23 +247,33 @@ Just as Stripe's fraud detection gets smarter with every transaction across mill
 
 ## Privacy Layer
 
-ValueOracle supports confidential purchases using Chainlink Confidential HTTP and a commit-reveal pattern. This prevents competing agents from front-running purchase decisions.
+ValueOracle implements genuine privacy using **Chainlink Confidential HTTP** (Go CRE SDK) and a **commit-reveal pattern**. This prevents competing agents from front-running purchase decisions.
 
 **Why privacy matters in agent commerce:**
 - Competing agents can monitor `PurchaseRequested` events and front-run deals
-- Marketplace API keys exposed onchain = security risk
+- Marketplace API keys exposed in node memory = security risk
 - Seller manipulation: if sellers see incoming purchase intents, they can raise prices
 
-**How it works:**
+**How it works (with actual Confidential HTTP):**
 
 ```
-Standard:  Agent → itemId + price + sellerId → onchain (public) → oracle evaluates
+Standard:  Agent → itemId + price + sellerId → onchain (public) → http.Client → oracle evaluates
 Private:   Agent → keccak256(itemId, price, sellerId, salt) → onchain (only hash visible)
-                 → plaintext sent via Confidential HTTP to CRE enclave → oracle evaluates
+                 → confidentialhttp.Client → request sent to SECURE ENCLAVE
+                 → API key injected via {{.marketplaceApiKey}} template (Vault DON)
+                 → response AES-GCM encrypted before leaving enclave
                  → only approve/reject written onchain — no purchase details exposed
 ```
 
-Onchain, only the commitment hash and the final verdict are visible. The CRE workflow uses Confidential HTTP to fetch marketplace data with encrypted API credentials inside a secure enclave. Neither the node operators nor onchain observers can see what the agent is buying, at what price, or from which seller.
+**What's protected by the enclave:**
+| Component | Protection |
+|---|---|
+| Marketplace API key | Vault DON → decrypted only inside enclave via `{{.marketplaceApiKey}}` |
+| Purchase intent | Sent through enclave, never in node memory |
+| API response | AES-GCM encrypted before leaving enclave (`EncryptOutput: true`) |
+| Onchain footprint | Only commitment hash + approve/reject verdict visible |
+
+The Go workflow (`valueoracle-cre-go/purchase-guard/main.go`) uses `confidentialhttp.Client` from the CRE Go SDK to execute the API call inside a secure enclave. The `VaultDonSecrets` mechanism ensures API credentials are threshold-decrypted and only available inside the enclave.
 
 After fulfillment, the agent can optionally reveal the purchase details onchain (commit-reveal pattern) for transparency or review purposes.
 

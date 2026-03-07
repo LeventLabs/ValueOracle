@@ -2,7 +2,11 @@ name: valueoracle-purchase-guard
 description: >
   Chainlink CRE workflow for ValueOracle.
   Supports both standard and confidential purchase evaluation.
-  Confidential mode uses Confidential HTTP to keep purchase intent private.
+
+  IMPORTANT: This YAML is a reference spec. The actual workflow is now
+  implemented in Go (valueoracle-cre-go/purchase-guard/main.go) to use
+  the ConfidentialHTTPClient from the Go CRE SDK. The TypeScript SDK
+  does not support Confidential HTTP.
 
 triggers:
   # Standard purchase — public intent
@@ -23,6 +27,8 @@ triggers:
 
 actions:
   # ── Standard flow ──────────────────────────────────────────
+  # Implemented in Go: onStandardPurchase() handler
+  # Uses http.Client — each node calls the API, consensus on response
 
   - id: evaluate_purchase
     type: http_request
@@ -53,9 +59,10 @@ actions:
       gasLimit: 200000
 
   # ── Confidential flow ─────────────────────────────────────
-  # Uses Confidential HTTP: API credentials and purchase details
-  # execute inside a secure enclave. Neither the marketplace API keys
-  # nor the item/price/seller data appear onchain or in node logs.
+  # Implemented in Go: onConfidentialPurchase() handler
+  # Uses confidentialhttp.Client — request executes inside secure enclave
+  # Secrets injected via {{.marketplaceApiKey}} template (Vault DON)
+  # Response encrypted with AES-GCM (EncryptOutput: true)
 
   - id: evaluate_confidential
     type: confidential_http_request
@@ -65,16 +72,14 @@ actions:
       url: "${DECISION_API_URL}/evaluate-confidential"
       headers:
         Content-Type: "application/json"
-        Authorization: "Bearer ${secrets.MARKETPLACE_API_KEY}"
+        Authorization: "Bearer {{.marketplaceApiKey}}"
       body:
         intentHash: "$(trigger.intentHash)"
-        # Plaintext purchase details are sent offchain via encrypted channel.
-        # The agent submits these to the CRE node directly (not onchain).
-        itemId: "$(confidential_input.itemId)"
-        price: "$(confidential_input.price)"
-        sellerId: "$(confidential_input.sellerId)"
       timeout: 10000
       encryptResponse: true
+      vaultSecrets:
+        - key: "marketplaceApiKey"
+        - key: "san_marino_aes_gcm_encryption_key"
 
   - id: fulfill_confidential
     type: onchain_write
@@ -92,10 +97,10 @@ actions:
 
 # Secrets managed via CRE Vault DON (threshold-encrypted, no single node can access)
 secrets:
-  - id: MARKETPLACE_API_KEY
-    description: "API key for authenticated marketplace data access"
-  - id: DECISION_API_KEY
-    description: "Internal auth token for decision engine"
+  - id: marketplaceApiKey
+    description: "API key for authenticated marketplace data access — injected in enclave only"
+  - id: san_marino_aes_gcm_encryption_key
+    description: "AES-256 key for response encryption — responses encrypted before leaving enclave"
 
 errorHandling:
   retries: 3
