@@ -32,8 +32,8 @@ This creates unacceptable financial risk in agent-driven commerce.
 ValueOracle acts as a **decision oracle** between an agent's purchase intent and the actual transaction. Before any funds move, the oracle:
 
 1. Aggregates prices from multiple marketplace sources
-2. Detects outliers and manipulation
-3. Scores seller reputation
+2. Detects price outliers via median deviation analysis
+3. Scores seller reputation (with agent review blending)
 4. Returns a verifiable **approve/reject** decision onchain
 
 ```
@@ -203,7 +203,7 @@ $ cre workflow simulate ./purchase-guard --non-interactive --trigger-index 0 \
 
 ✓ Workflow compiled
 [USER LOG] Purchase request detected: requestId=0xb363b115... item=laptop-001 price=$1100 seller=seller-42
-[USER LOG] Purchase evaluation complete: requestId=0xb363b115... | verdict=APPROVE | score=95 | ref=$1095 | eff=$1048 | reason="Fair price and trusted seller"
+[USER LOG] Purchase evaluation complete: requestId=0xb363b115... | verdict=APPROVE | score=95 | ref=$1099 | eff=$1048 | reason="Fair price and trusted seller"
 [USER LOG] Decision written onchain: tx=0x00000000000...
 ✓ Workflow Simulation Result: "APPROVE: score 95/100"
 

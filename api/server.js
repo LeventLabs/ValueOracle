@@ -30,6 +30,19 @@ function median(arr) {
   return sorted[Math.floor(sorted.length / 2)];
 }
 
+// Flag sources that deviate >40% from median — potential manipulation or stale data
+function detectOutliers(sources, medianPrice) {
+  const OUTLIER_THRESHOLD = 0.4;
+  return sources.map(s => {
+    const deviation = Math.abs(s.price - medianPrice) / medianPrice;
+    return {
+      ...s,
+      outlier: deviation > OUTLIER_THRESHOLD,
+      deviation: +(deviation * 100).toFixed(1)
+    };
+  });
+}
+
 function clamp(val, min = 0, max = 100) {
   return Math.max(min, Math.min(max, val));
 }
@@ -103,6 +116,8 @@ app.post('/evaluate', async (req, res) => {
     }
 
     const referencePrice = median(sources.map(s => s.price));
+    const sourcesWithOutliers = detectOutliers(sources, referencePrice);
+    const outlierCount = sourcesWithOutliers.filter(s => s.outlier).length;
     const productData = marketplaceA.getProductData(itemId);
     const dealData = marketplaceA.getDealData(itemId);
 
@@ -126,7 +141,9 @@ app.post('/evaluate', async (req, res) => {
     const reason = buildReason(approved, breakdown, deviation, seller, productData, valueScore, sellerBlocked);
 
     res.json({
-      approved, verdict, valueScore, referencePrice, reason, breakdown, sources,
+      approved, verdict, valueScore, referencePrice, reason, breakdown,
+      sources: sourcesWithOutliers,
+      outlierCount,
       effectivePrice: Math.round(effectivePrice),
       deal: dealData,
       product: { rating: productData.rating, reviewCount: productData.reviewCount, returnRate: productData.returnRate },
@@ -167,6 +184,7 @@ app.post('/evaluate-confidential', async (req, res) => {
     }
 
     const referencePrice = median(sources.map(s => s.price));
+    const sourcesWithOutliers = detectOutliers(sources, referencePrice);
     const productData = marketplaceA.getProductData(itemId);
     const dealData = marketplaceA.getDealData(itemId);
     const effectivePrice = price - dealData.cashback - dealData.coupon + dealData.shippingFee;
