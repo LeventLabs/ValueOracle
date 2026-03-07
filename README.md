@@ -99,9 +99,6 @@ ValueOracle/
 │       ├── main.ts                # ← TS workflow: HTTPClient + ConfidentialHTTPClient
 │       ├── config.staging.json    # Workflow config (API URL, contract, chain selector)
 │       └── workflow.yaml          # CRE CLI target settings
-├── valueoracle-cre-go/            # (Go version — alternative implementation)
-│   └── purchase-guard/
-│       └── main.go                # Go workflow with confidentialhttp.Client
 ├── api/
 │   ├── server.js                  # Decision engine API
 │   └── sources/                   # Marketplace data adapters
