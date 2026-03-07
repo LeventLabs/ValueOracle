@@ -84,7 +84,7 @@ flowchart LR
 | Privacy | Confidential HTTP (TS SDK, enclave) + Commit-Reveal |
 | Decision API | Node.js + Groq LLM (LLaMA 3.3 70B) |
 | Agent Trigger | CLI / Script |
-| Data Sources | 1 real API (DummyJSON) + 2 mock marketplace adapters |
+| Data Sources | 2 real APIs (DummyJSON + FakeStoreAPI) + 1 mock marketplace adapter |
 
 ## Project Structure
 
@@ -199,8 +199,8 @@ On top of the rule-based value score, the decision engine sends evaluation data 
 | Overpriced | $2,500 | $2,448 | $1,099 | seller-42 (0.88) | 3 (4.67/5) | 68 | ❌ Rejected (price) |
 | Untrusted seller | $1,000 | $948 | $1,099 | seller-99 (0.30) | 1 (1.33/5) | 81 | ❌ Blocked (trust) |
 | Low quality item | $25 | $30 | $13 | seller-200 (0.15) | — | 30 | ❌ Blocked (trust) |
-| Good deal | $280 | $274 | $312 | seller-100 (0.92) | 2 (4.50/5) | 95 | ✅ Approved |
-| Coupon saves it | $950 | $910 | $923 | seller-42 (0.88) | 3 (4.67/5) | 94 | ✅ Approved |
+| Good deal | $280 | $274 | $570 | seller-100 (0.92) | 2 (4.50/5) | 95 | ✅ Approved |
+| Coupon saves it | $950 | $910 | $927 | seller-42 (0.88) | 3 (4.67/5) | 94 | ✅ Approved |
 
 ## CRE Workflow Simulation
 
@@ -217,6 +217,7 @@ $ cre workflow simulate ./purchase-guard --non-interactive --trigger-index 0 \
 ✓ Workflow compiled
 [USER LOG] Purchase request detected: requestId=0xb363b115... item=laptop-001 price=$1100 seller=seller-42
 [USER LOG] Purchase evaluation complete: requestId=0xb363b115... | verdict=APPROVE | score=95 | ref=$1099 | eff=$1048 | reason="Fair price and trusted seller"
+
 [USER LOG] Decision written onchain: tx=0x00000000000...
 ✓ Workflow Simulation Result: "APPROVE: score 95/100"
 
