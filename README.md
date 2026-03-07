@@ -76,7 +76,7 @@ flowchart LR
 1. Agent submits purchase intent → `PurchaseGuard.sol`
 2. Contract emits `PurchaseRequested` event
 3. Chainlink CRE workflow triggers, fetches external data
-4. Decision engine evaluates price fairness
+4. Decision engine evaluates value across four dimensions
 5. CRE signs the result and writes it back onchain via `KeystoneForwarder` → `onReport()`
 6. Contract decodes the report and approves or rejects the purchase
 

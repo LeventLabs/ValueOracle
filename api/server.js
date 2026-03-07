@@ -270,10 +270,10 @@ app.post('/evaluate-confidential', async (req, res) => {
   }
 });
 
-app.get('/reviews/seller/:sellerId', async (_req, res) => {
-  const reviews = sellerScore.getSellerReviews(_req.params.sellerId);
-  const stats = sellerScore.getReviewStats(_req.params.sellerId);
-  res.json({ sellerId: _req.params.sellerId, reviews, stats });
+app.get('/reviews/seller/:sellerId', async (req, res) => {
+  const reviews = await sellerScore.getSellerReviews(req.params.sellerId);
+  const score = await sellerScore.getScore(req.params.sellerId);
+  res.json({ sellerId: req.params.sellerId, reviews, stats: score.reviewStats });
 });
 
 app.get('/reviews/item/:itemId', (_req, res) => {
