@@ -3,7 +3,7 @@ import { encodeAbiParameters, hexToBytes, parseAbiParameters } from "viem";
 import { decodePurchaseEvent, initWorkflow } from "./main";
 
 describe("purchase-guard workflow", () => {
-  it("builds one EVM log-trigger handler for the configured contract", () => {
+  it("builds two EVM log-trigger handlers for the configured contract", () => {
     const handlers = initWorkflow({
       apiUrl: "http://localhost:3000",
       contractAddress: "0xfDB5020163742C340AAebAade840078CC557e1a1",
@@ -11,7 +11,7 @@ describe("purchase-guard workflow", () => {
     });
 
     expect(handlers).toBeArray();
-    expect(handlers).toHaveLength(1);
+    expect(handlers).toHaveLength(2);
   });
 
   it("decodes PurchaseRequested event payload", () => {
