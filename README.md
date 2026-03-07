@@ -7,11 +7,13 @@ ValueOracle is a verifiable commerce oracle powered by Chainlink CRE that protec
 ---
 ## Links
 
-**Live Website:** https://valueoracle.com 
-**YouTube Demo:** https://youtu.be/dYp4lH2XHhc 
-**Decision API (Railway):** https://valueoracle-api.up.railway.app  
-**API Health:** https://valueoracle-api.up.railway.app/health  
-**Live Demo:** https://valueoracle.com/#demo
+| | |
+|---|---|
+| Live Website | https://valueoracle.com |
+| YouTube Demo | https://youtu.be/dYp4lH2XHhc |
+| Decision API | https://valueoracle-api.up.railway.app |
+| API Health | https://valueoracle-api.up.railway.app/health |
+| Live Demo | https://valueoracle.com/#demo |
 
 
 > Built for [Convergence: A Chainlink Hackathon](https://chain.link/hackathon) — CRE & AI + Privacy Tracks
@@ -68,7 +70,7 @@ flowchart LR
     Engine --- MC
     Engine --- SS
     Engine -->|"valueScore + verdict"| CRE
-    CRE -->|"fulfillOracleDecision()"| Contract
+    CRE -->|"onReport()"| Contract
     Contract -->|"✅ / ❌"| Agent
 ```
 
