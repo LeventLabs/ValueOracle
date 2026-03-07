@@ -39,7 +39,7 @@ Thumbs.db
 .classpath
 .c9/
 *.sublime-workspace
-levi/
+
 
 # Build outputs
 build/
@@ -49,6 +49,7 @@ dist/
 # Temp files
 tmp/
 temp/
+levi/
 
 # Node
 .npm

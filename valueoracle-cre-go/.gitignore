@@ -8,3 +8,5 @@ vendor/
 
 # CRE
 .cre_build_tmp*
+project.yaml
+.env

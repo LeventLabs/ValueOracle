@@ -1,8 +1,10 @@
 import {
   EVMClient,
   HTTPClient,
+  ConfidentialHTTPClient,
   handler,
   ok,
+  json,
   consensusIdenticalAggregation,
   getNetwork,
   bytesToHex,
@@ -128,6 +130,75 @@ export const onPurchaseRequested = (runtime: Runtime<Config>, log: EVMLog): stri
     : `${result.verdict}: score ${result.valueScore}/100 — ${result.reason}`;
 };
 
+// Confidential purchase handler — triggered by ConfidentialPurchaseRequested event.
+// Uses ConfidentialHTTPClient: request executes inside a secure enclave,
+// secrets injected via Vault DON template syntax, response AES-GCM encrypted.
+export const onConfidentialPurchaseRequested = (runtime: Runtime<Config>, log: EVMLog): string => {
+  const requestId = bytesToHex(log.topics[1]);
+
+  // Decode non-indexed params: (bytes32 intentHash, address requester)
+  const decoded = decodeAbiParameters(
+    parseAbiParameters("bytes32 intentHash, address requester"),
+    bytesToHex(log.data)
+  );
+
+  const intentHash = decoded[0] as string;
+  const requester = decoded[1] as string;
+
+  runtime.log(
+    `Confidential purchase detected: requestId=${requestId.slice(0, 12)}... intentHash=${intentHash.slice(0, 12)}... requester=${requester}`
+  );
+
+  const confHTTPClient = new ConfidentialHTTPClient();
+
+  // Confidential HTTP: request executes inside a secure enclave.
+  // The marketplaceApiKey is injected via Vault DON template syntax — never visible to DON nodes.
+  // Purchase details travel through the confidential channel alongside the intentHash.
+  // In production, the agent submits details offchain; the enclave resolves secrets and
+  // forwards the authenticated request to the decision API.
+  const response = confHTTPClient
+    .sendRequest(runtime, {
+      request: {
+        url: `${runtime.config.apiUrl}/evaluate-confidential`,
+        method: "POST",
+        bodyString: `{"intentHash":"${intentHash}","itemId":"laptop-001","price":1100,"sellerId":"seller-42"}`,
+        multiHeaders: {
+          "Content-Type": { values: ["application/json"] },
+          Authorization: { values: ["Bearer {{.marketplaceApiKey}}"] },
+        },
+        encryptOutput: true,
+      },
+      vaultDonSecrets: [
+        { key: "marketplaceApiKey" },
+        { key: "san_marino_aes_gcm_encryption_key" },
+      ],
+    })
+    .result();
+
+  if (!ok(response)) {
+    runtime.log(`Confidential request failed: status=${response.statusCode}`);
+    return `CONFIDENTIAL_ERROR: requestId=${requestId.slice(0, 12)}... status=${response.statusCode}`;
+  }
+
+  // In production the response is AES-GCM encrypted — decrypt offchain.
+  // In simulation the CRE simulator returns plaintext.
+  try {
+    const result = json(response) as EvaluationResult;
+    runtime.log(
+      `Confidential evaluation complete: requestId=${requestId.slice(0, 12)}... verdict=${result.verdict} score=${result.valueScore}`
+    );
+    return result.approved
+      ? `APPROVE: score ${result.valueScore}/100 (confidential)`
+      : `${result.verdict}: score ${result.valueScore}/100 — ${result.reason} (confidential)`;
+  } catch {
+    // Encrypted response — can't parse in workflow, decrypt offchain
+    runtime.log(
+      `Confidential response received (encrypted): requestId=${requestId.slice(0, 12)}... bodyLength=${response.body.length}`
+    );
+    return `CONFIDENTIAL_RESULT: requestId=${requestId.slice(0, 12)}... encrypted_len=${response.body.length}`;
+  }
+};
+
 export const initWorkflow = (config: Config) => {
   const network = getNetwork({
     chainFamily: "evm",
@@ -146,6 +217,11 @@ export const initWorkflow = (config: Config) => {
     toBytes("PurchaseRequested(bytes32,string,uint256,string,address)")
   );
 
+  // ConfidentialPurchaseRequested(bytes32 indexed requestId, bytes32 intentHash, address requester)
+  const confidentialPurchaseRequestedHash = keccak256(
+    toBytes("ConfidentialPurchaseRequested(bytes32,bytes32,address)")
+  );
+
   return [
     handler(
       evmClient.logTrigger({
@@ -153,6 +229,13 @@ export const initWorkflow = (config: Config) => {
         topics: [{ values: [hexToBase64(purchaseRequestedHash)] }],
       }),
       onPurchaseRequested
+    ),
+    handler(
+      evmClient.logTrigger({
+        addresses: [hexToBase64(config.contractAddress)],
+        topics: [{ values: [hexToBase64(confidentialPurchaseRequestedHash)] }],
+      }),
+      onConfidentialPurchaseRequested
     ),
   ];
 };
