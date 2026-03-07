@@ -71,19 +71,20 @@ flowchart LR
 2. Contract emits `PurchaseRequested` event
 3. Chainlink CRE workflow triggers, fetches external data
 4. Decision engine evaluates price fairness
-5. Oracle returns signed result → contract approves or rejects
+5. CRE signs the result and writes it back onchain via `KeystoneForwarder` → `onReport()`
+6. Contract decodes the report and approves or rejects the purchase
 
 ## Tech Stack
 
 | Component | Technology |
 |---|---|
 | Smart Contract | Solidity (Sepolia) |
-| Contract Address | [`0xfDB5020163742C340AAebAade840078CC557e1a1`](https://sepolia.etherscan.io/address/0xfDB5020163742C340AAebAade840078CC557e1a1) |
+| Contract Address | [`0x22BEa4788e8AaFF94D3D575AA23Ec429AD198fFc`](https://sepolia.etherscan.io/address/0x22BEa4788e8AaFF94D3D575AA23Ec429AD198fFc) |
 | Oracle Layer | Chainlink CRE |
 | Privacy | Confidential HTTP (TS SDK, enclave) + Commit-Reveal |
 | Decision API | Node.js |
 | Agent Trigger | CLI / Script |
-| Data Sources | Mock marketplace APIs |
+| Data Sources | 1 real API (DummyJSON) + 2 mock marketplace adapters |
 
 ## Project Structure
 
@@ -108,7 +109,7 @@ ValueOracle/
 │   ├── deploy.js                  # Contract deployment
 │   └── simulate.js                # End-to-end API simulation (6 scenarios)
 ├── test/
-│   └── PurchaseGuard.test.js      # 23 tests
+│   └── PurchaseGuard.test.js      # 27 tests
 └── website/
     └── index.html                 # Live demo page
 ```
@@ -181,12 +182,12 @@ The engine calculates an effective price by factoring in cashback, coupons, and 
 
 | Scenario | Price | Eff. Price | Ref Price | Seller | Reviews | Score | Result |
 |---|---|---|---|---|---|---|---|
-| Fair purchase | $1,100 | $1,048 | $1,095 | seller-42 (0.88) | 3 (4.67/5) | 95 | ✅ Approved |
-| Overpriced | $2,500 | $2,448 | $1,095 | seller-42 (0.88) | 3 (4.67/5) | 68 | ❌ Rejected (price) |
-| Untrusted seller | $1,000 | $948 | $1,095 | seller-99 (0.30) | 1 (1.33/5) | 81 | ❌ Blocked (trust) |
-| Low quality item | $25 | $30 | $11 | seller-200 (0.15) | — | 27 | ❌ Blocked (trust) |
-| Good deal | $280 | $274 | $295 | seller-100 (0.92) | 2 (4.50/5) | 95 | ✅ Approved |
-| Coupon saves it | $950 | $910 | $899 | seller-42 (0.88) | 3 (4.67/5) | 93 | ✅ Approved |
+| Fair purchase | $1,100 | $1,048 | $1,099 | seller-42 (0.88) | 3 (4.67/5) | 95 | ✅ Approved |
+| Overpriced | $2,500 | $2,448 | $1,099 | seller-42 (0.88) | 3 (4.67/5) | 68 | ❌ Rejected (price) |
+| Untrusted seller | $1,000 | $948 | $1,099 | seller-99 (0.30) | 1 (1.33/5) | 81 | ❌ Blocked (trust) |
+| Low quality item | $25 | $30 | $13 | seller-200 (0.15) | — | 30 | ❌ Blocked (trust) |
+| Good deal | $280 | $274 | $312 | seller-100 (0.92) | 2 (4.50/5) | 95 | ✅ Approved |
+| Coupon saves it | $950 | $910 | $923 | seller-42 (0.88) | 3 (4.67/5) | 94 | ✅ Approved |
 
 ## CRE Workflow Simulation
 
@@ -198,19 +199,21 @@ The TypeScript workflow uses `EVMClient.logTrigger` to listen for both `Purchase
 ```
 $ cd valueoracle-cre
 $ cre workflow simulate ./purchase-guard --non-interactive --trigger-index 0 \
-  --evm-tx-hash 0xe7cd7bf8...407f08 --evm-event-index 0
+  --evm-tx-hash 0x3ba19f89...0455f850 --evm-event-index 0
 
 ✓ Workflow compiled
 [USER LOG] Purchase request detected: requestId=0xb363b115... item=laptop-001 price=$1100 seller=seller-42
 [USER LOG] Purchase evaluation complete: requestId=0xb363b115... | verdict=APPROVE | score=95 | ref=$1095 | eff=$1048 | reason="Fair price and trusted seller"
+[USER LOG] Decision written onchain: tx=0x00000000000...
 ✓ Workflow Simulation Result: "APPROVE: score 95/100"
 
 # Confidential purchase simulation (trigger-index 1):
 $ cre workflow simulate ./purchase-guard --non-interactive --trigger-index 1 \
-  --evm-tx-hash 0xc118a490...570c4 --evm-event-index 0
+  --evm-tx-hash 0x86a1628a...cea638db --evm-event-index 0
 
 ✓ Workflow compiled
 [USER LOG] Confidential purchase detected: requestId=0xc4c81f1539... intentHash=0x086c4fb469...
+[USER LOG] Intent resolved: item=laptop-001 price=1100 seller=seller-42
 [USER LOG] Confidential response received (encrypted): requestId=0xc4c81f1539... bodyLength=313
 ✓ Workflow Simulation Result: "CONFIDENTIAL_RESULT: requestId=0xc4c81f1539... encrypted_len=313"
 ```

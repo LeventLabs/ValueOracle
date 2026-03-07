@@ -3,7 +3,7 @@ const hre = require("hardhat");
 
 async function main() {
   const [signer] = await hre.ethers.getSigners();
-  const contractAddr = "0xfDB5020163742C340AAebAade840078CC557e1a1";
+  const contractAddr = "0x22BEa4788e8AaFF94D3D575AA23Ec429AD198fFc";
 
   const PurchaseGuard = await hre.ethers.getContractAt("PurchaseGuard", contractAddr);
 

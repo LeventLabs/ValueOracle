@@ -6,7 +6,7 @@ describe("purchase-guard workflow", () => {
   it("builds two EVM log-trigger handlers for the configured contract", () => {
     const handlers = initWorkflow({
       apiUrl: "http://localhost:3000",
-      contractAddress: "0xfDB5020163742C340AAebAade840078CC557e1a1",
+      contractAddress: "0x22BEa4788e8AaFF94D3D575AA23Ec429AD198fFc",
       chainSelectorName: "ethereum-testnet-sepolia",
     });
 

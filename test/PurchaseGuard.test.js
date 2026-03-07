@@ -16,7 +16,7 @@ describe("PurchaseGuard", function () {
   beforeEach(async function () {
     [owner, oracle, agent] = await ethers.getSigners();
     const Factory = await ethers.getContractFactory("PurchaseGuard");
-    guard = await Factory.deploy(oracle.address);
+    guard = await Factory.deploy(oracle.address, ethers.ZeroAddress);
     await guard.waitForDeployment();
   });
 
@@ -234,6 +234,66 @@ describe("PurchaseGuard", function () {
 
       await expect(guard.connect(owner).revealPurchase(id, "laptop-001", 1100, "seller-42", salt))
         .to.be.revertedWithCustomError(guard, "Unauthorized");
+    });
+  });
+
+  describe("onReport (CRE write-back)", function () {
+    let fwdGuard, fwd;
+
+    beforeEach(async function () {
+      fwd = agent; // reuse agent signer as mock forwarder
+      const Factory = await ethers.getContractFactory("PurchaseGuard");
+      fwdGuard = await Factory.deploy(oracle.address, fwd.address);
+      await fwdGuard.waitForDeployment();
+    });
+
+    it("fulfills standard purchase via onReport", async function () {
+      const tx = await fwdGuard.connect(agent).requestPurchase("laptop-001", 1100, "seller-42");
+      const id = await extractRequestId(tx, "PurchaseRequested");
+
+      const report = ethers.AbiCoder.defaultAbiCoder().encode(
+        ["bytes32", "bool", "uint256", "bool"],
+        [id, true, 1095, false]
+      );
+
+      await expect(fwdGuard.connect(fwd).onReport("0x", report))
+        .to.emit(fwdGuard, "ReportReceived")
+        .and.to.emit(fwdGuard, "PurchaseApproved");
+    });
+
+    it("fulfills confidential purchase via onReport", async function () {
+      const s = ethers.hexlify(ethers.randomBytes(32));
+      const ih = ethers.solidityPackedKeccak256(
+        ['string', 'uint256', 'string', 'bytes32'],
+        ["laptop-001", 1100, "seller-42", s]
+      );
+      const tx = await fwdGuard.connect(agent).requestConfidentialPurchase(ih);
+      const id = await extractRequestId(tx, "ConfidentialPurchaseRequested");
+
+      const report = ethers.AbiCoder.defaultAbiCoder().encode(
+        ["bytes32", "bool", "uint256", "bool"],
+        [id, false, 1095, true]
+      );
+
+      await expect(fwdGuard.connect(fwd).onReport("0x", report))
+        .to.emit(fwdGuard, "ReportReceived")
+        .and.to.emit(fwdGuard, "PurchaseRejected");
+    });
+
+    it("reverts when called by non-forwarder", async function () {
+      const report = ethers.AbiCoder.defaultAbiCoder().encode(
+        ["bytes32", "bool", "uint256", "bool"],
+        [ethers.ZeroHash, true, 1000, false]
+      );
+
+      await expect(fwdGuard.connect(owner).onReport("0x", report))
+        .to.be.revertedWithCustomError(fwdGuard, "InvalidForwarder");
+    });
+
+    it("supports IReceiver interface via ERC165", async function () {
+      // IReceiver interfaceId = bytes4(keccak256("onReport(bytes,bytes)"))
+      // IERC165 interfaceId = 0x01ffc9a7
+      expect(await fwdGuard.supportsInterface("0x01ffc9a7")).to.be.true;
     });
   });
 });

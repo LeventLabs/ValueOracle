@@ -77,26 +77,25 @@ program
       console.log(`intent hash: ${intentHash}`);
       console.log(`salt (save this for reveal): ${salt}`);
 
+      // Cache purchase details offchain — CRE workflow will query by intentHash
+      const apiUrl = process.env.DECISION_API_URL || 'http://localhost:3000';
+      try {
+        await fetch(`${apiUrl}/intent`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ intentHash, itemId, price: Number(opts.price), sellerId: opts.seller })
+        });
+        console.log('intent cached offchain');
+      } catch (e) {
+        console.log('warning: could not cache intent offchain, CRE may not resolve details');
+      }
+
       const tx = await contract.requestConfidentialPurchase(intentHash);
       console.log(`tx: ${tx.hash}`);
 
       const receipt = await tx.wait();
       console.log(`confirmed in block ${receipt.blockNumber}`);
-
-      // Send plaintext to oracle via Confidential HTTP (offchain)
-      const apiUrl = process.env.DECISION_API_URL || 'http://localhost:3000';
-      const evalRes = await fetch(`${apiUrl}/evaluate-confidential`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ itemId, price: Number(opts.price), sellerId: opts.seller, intentHash })
-      });
-
-      if (evalRes.ok) {
-        const result = await evalRes.json();
-        console.log(`oracle verdict: ${result.verdict} (score=${result.valueScore})`);
-      } else {
-        console.log('Waiting for oracle fulfillment via CRE...');
-      }
+      console.log('Waiting for oracle fulfillment via CRE...');
     } catch (err) {
       console.error(`Failed: ${err.message}`);
       process.exit(1);

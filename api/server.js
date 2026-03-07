@@ -9,6 +9,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// In-memory intent cache — agent stores purchase details offchain keyed by intentHash.
+// CRE confidential workflow queries this instead of hardcoding purchase details.
+const intentCache = new Map();
+
 const WEIGHTS = {
   priceFairness: 0.35,
   qualitySignal: 0.25,
@@ -203,6 +207,23 @@ app.get('/reviews/seller/:sellerId', async (_req, res) => {
 app.get('/reviews/item/:itemId', (_req, res) => {
   const reviews = sellerScore.getItemReviews(_req.params.itemId);
   res.json({ itemId: _req.params.itemId, reviews });
+});
+
+// Cache purchase details offchain — agent calls this before submitting confidential tx.
+// CRE workflow retrieves details by intentHash instead of hardcoding them.
+app.post('/intent', (req, res) => {
+  const { intentHash, itemId, price, sellerId } = req.body;
+  if (!intentHash || !itemId || price === undefined || !sellerId) {
+    return res.status(400).json({ error: 'Missing fields: intentHash, itemId, price, sellerId' });
+  }
+  intentCache.set(intentHash, { itemId, price, sellerId, timestamp: Date.now() });
+  res.json({ cached: true, intentHash });
+});
+
+app.get('/intent/:intentHash', (req, res) => {
+  const data = intentCache.get(req.params.intentHash);
+  if (!data) return res.status(404).json({ error: 'Intent not found' });
+  res.json(data);
 });
 
 app.get('/health', (_req, res) => {

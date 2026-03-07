@@ -9,12 +9,13 @@ import {
   getNetwork,
   bytesToHex,
   hexToBase64,
+  TxStatus,
   Runner,
   type Runtime,
   type EVMLog,
   type HTTPSendRequester,
 } from "@chainlink/cre-sdk";
-import { keccak256, toBytes, decodeAbiParameters, parseAbiParameters } from "viem";
+import { keccak256, toBytes, decodeAbiParameters, parseAbiParameters, encodeAbiParameters } from "viem";
 import { z } from "zod";
 
 const configSchema = z.object({
@@ -87,6 +88,46 @@ export const evaluatePurchase = (
   };
 };
 
+// Write oracle decision back onchain via CRE KeystoneForwarder → PurchaseGuard.onReport()
+// Report format: abi.encode(bytes32 requestId, bool approved, uint256 referencePrice, bool isConfidential)
+function writeDecisionOnchain(
+  runtime: Runtime<Config>,
+  evmClient: EVMClient,
+  requestId: string,
+  approved: boolean,
+  referencePrice: number,
+  isConfidential: boolean
+): void {
+  const reportData = encodeAbiParameters(
+    parseAbiParameters("bytes32 requestId, bool approved, uint256 referencePrice, bool isConfidential"),
+    [requestId as `0x${string}`, approved, BigInt(referencePrice), isConfidential]
+  );
+
+  const reportResponse = runtime
+    .report({
+      encodedPayload: hexToBase64(reportData),
+      encoderName: "evm",
+      signingAlgo: "ecdsa",
+      hashingAlgo: "keccak256",
+    })
+    .result();
+
+  const writeResult = evmClient
+    .writeReport(runtime, {
+      receiver: runtime.config.contractAddress,
+      report: reportResponse,
+      gasConfig: { gasLimit: "300000" },
+    })
+    .result();
+
+  if (writeResult.txStatus === TxStatus.SUCCESS) {
+    const txHash = bytesToHex(writeResult.txHash || new Uint8Array(32));
+    runtime.log(`Decision written onchain: tx=${txHash.slice(0, 14)}...`);
+  } else {
+    runtime.log(`Onchain write failed: status=${writeResult.txStatus} err=${writeResult.errorMessage || "unknown"}`);
+  }
+}
+
 // Handler: triggered by PurchaseRequested event on PurchaseGuard contract
 export const onPurchaseRequested = (runtime: Runtime<Config>, log: EVMLog): string => {
   const purchase = decodePurchaseEvent(log);
@@ -121,9 +162,17 @@ export const onPurchaseRequested = (runtime: Runtime<Config>, log: EVMLog): stri
   ].join(" | ");
 
   runtime.log(`Purchase evaluation complete: ${summary}`);
-  runtime.log(
-    "Workflow responsibility: this TypeScript workflow evaluates and logs decision data. Onchain fulfillment is handled by cre/workflow.yaml action fulfill_decision."
-  );
+
+  // Write decision back onchain via CRE → KeystoneForwarder → PurchaseGuard.onReport()
+  const network = getNetwork({
+    chainFamily: "evm",
+    chainSelectorName: runtime.config.chainSelectorName,
+    isTestnet: true,
+  });
+  if (network) {
+    const evmClient = new EVMClient(network.chainSelector.selector);
+    writeDecisionOnchain(runtime, evmClient, purchase.requestId, result.approved, result.referencePrice, false);
+  }
 
   return result.approved
     ? `APPROVE: score ${result.valueScore}/100`
@@ -151,17 +200,52 @@ export const onConfidentialPurchaseRequested = (runtime: Runtime<Config>, log: E
 
   const confHTTPClient = new ConfidentialHTTPClient();
 
-  // Confidential HTTP: request executes inside a secure enclave.
+  // Step 1: Resolve purchase details from intent cache.
+  // Agent caches details offchain (POST /intent) before submitting the confidential tx.
+  // This avoids hardcoding purchase details in the workflow body.
+  const httpClient = new HTTPClient();
+  const intentData = httpClient
+    .sendRequest(
+      runtime,
+      (sendRequester) => {
+        const req = {
+          url: `${runtime.config.apiUrl}/intent/${intentHash}`,
+          method: "GET" as const,
+          headers: { "Content-Type": "application/json" },
+        };
+        const resp = sendRequester.sendRequest(req).result();
+        if (!ok(resp)) {
+          throw new Error(`Intent lookup failed: ${resp.statusCode}`);
+        }
+        return JSON.parse(new TextDecoder().decode(resp.body)) as {
+          itemId: string;
+          price: number;
+          sellerId: string;
+        };
+      },
+      consensusIdenticalAggregation<{ itemId: string; price: number; sellerId: string }>()
+    )()
+    .result();
+
+  runtime.log(
+    `Intent resolved: item=${intentData.itemId} price=${intentData.price} seller=${intentData.sellerId}`
+  );
+
+  // Step 2: Confidential HTTP — evaluate inside secure enclave with resolved details.
   // The marketplaceApiKey is injected via Vault DON template syntax — never visible to DON nodes.
-  // Purchase details travel through the confidential channel alongside the intentHash.
-  // In production, the agent submits details offchain; the enclave resolves secrets and
-  // forwards the authenticated request to the decision API.
+  const bodyStr = JSON.stringify({
+    intentHash,
+    itemId: intentData.itemId,
+    price: intentData.price,
+    sellerId: intentData.sellerId,
+  });
+
   const response = confHTTPClient
     .sendRequest(runtime, {
       request: {
         url: `${runtime.config.apiUrl}/evaluate-confidential`,
         method: "POST",
-        bodyString: `{"intentHash":"${intentHash}","itemId":"laptop-001","price":1100,"sellerId":"seller-42"}`,
+        bodyString: bodyStr,
         multiHeaders: {
           "Content-Type": { values: ["application/json"] },
           Authorization: { values: ["Bearer {{.marketplaceApiKey}}"] },
@@ -182,11 +266,24 @@ export const onConfidentialPurchaseRequested = (runtime: Runtime<Config>, log: E
 
   // In production the response is AES-GCM encrypted — decrypt offchain.
   // In simulation the CRE simulator returns plaintext.
+  const network = getNetwork({
+    chainFamily: "evm",
+    chainSelectorName: runtime.config.chainSelectorName,
+    isTestnet: true,
+  });
+
   try {
     const result = json(response) as EvaluationResult;
     runtime.log(
       `Confidential evaluation complete: requestId=${requestId.slice(0, 12)}... verdict=${result.verdict} score=${result.valueScore}`
     );
+
+    // Write confidential decision back onchain
+    if (network) {
+      const evmClient = new EVMClient(network.chainSelector.selector);
+      writeDecisionOnchain(runtime, evmClient, requestId, result.approved, result.referencePrice, true);
+    }
+
     return result.approved
       ? `APPROVE: score ${result.valueScore}/100 (confidential)`
       : `${result.verdict}: score ${result.valueScore}/100 — ${result.reason} (confidential)`;

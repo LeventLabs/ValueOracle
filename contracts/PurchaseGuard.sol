@@ -1,9 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+/// @notice ERC165 interface detection
+interface IERC165 {
+    function supportsInterface(bytes4 interfaceId) external view returns (bool);
+}
+
+/// @notice CRE KeystoneForwarder callback interface
+interface IReceiver is IERC165 {
+    function onReport(bytes calldata metadata, bytes calldata report) external;
+}
+
 /// @title PurchaseGuard
 /// @notice Onchain spending guard for autonomous agents with privacy-preserving purchase evaluation.
-contract PurchaseGuard {
+///         Implements IReceiver to receive CRE workflow reports via KeystoneForwarder.
+contract PurchaseGuard is IReceiver {
     struct PurchaseRequest {
         string itemId;
         uint256 proposedPrice;
@@ -43,6 +54,7 @@ contract PurchaseGuard {
 
     address public oracle;
     address public owner;
+    address public forwarder;
     uint256 private _nonce;
 
     event PurchaseRequested(bytes32 indexed requestId, string itemId, uint256 proposedPrice, string sellerId, address requester);
@@ -51,6 +63,7 @@ contract PurchaseGuard {
     event PurchaseApproved(bytes32 indexed requestId, uint256 referencePrice);
     event PurchaseRejected(bytes32 indexed requestId, uint256 referencePrice, string reason);
     event ReviewSubmitted(bytes32 indexed requestId, string itemId, string sellerId, uint8 quality, uint8 delivery, uint8 value, address reviewer);
+    event ReportReceived(bytes32 indexed requestId, bool approved, uint256 referencePrice);
 
     error Unauthorized();
     error AlreadyFulfilled();
@@ -61,16 +74,42 @@ contract PurchaseGuard {
     error AlreadyRevealed();
     error RequestNotFound();
     error NotFulfilled();
+    error InvalidForwarder();
 
     modifier onlyOracle() { if (msg.sender != oracle) revert Unauthorized(); _; }
     modifier onlyOwner()  { if (msg.sender != owner)  revert Unauthorized(); _; }
 
-    constructor(address _oracle) {
+    constructor(address _oracle, address _forwarder) {
         oracle = _oracle;
+        forwarder = _forwarder;
         owner = msg.sender;
     }
 
-    /// @notice Standard purchase request (public intent)
+    // ── IReceiver: CRE workflow writes back via KeystoneForwarder ────────
+
+    /// @notice Called by KeystoneForwarder after DON consensus.
+    ///         Report format: abi.encode(bytes32 requestId, bool approved, uint256 referencePrice, bool isConfidential)
+    function onReport(bytes calldata, bytes calldata report) external override {
+        if (msg.sender != forwarder) revert InvalidForwarder();
+
+        (bytes32 requestId, bool approved, uint256 referencePrice, bool isConfidential) =
+            abi.decode(report, (bytes32, bool, uint256, bool));
+
+        if (isConfidential) {
+            _fulfillConfidential(requestId, approved, referencePrice);
+        } else {
+            _fulfillStandard(requestId, approved, referencePrice);
+        }
+
+        emit ReportReceived(requestId, approved, referencePrice);
+    }
+
+    function supportsInterface(bytes4 interfaceId) external pure override returns (bool) {
+        return interfaceId == type(IReceiver).interfaceId || interfaceId == type(IERC165).interfaceId;
+    }
+
+    // ── Standard purchase request (public intent) ───────────────────────
+
     function requestPurchase(
         string calldata itemId,
         uint256 proposedPrice,
@@ -92,9 +131,8 @@ contract PurchaseGuard {
         emit PurchaseRequested(requestId, itemId, proposedPrice, sellerId, msg.sender);
     }
 
-    /// @notice Confidential purchase — only a hash of the intent is stored onchain.
-    ///         The oracle receives the plaintext via Confidential HTTP (offchain).
-    ///         Competitors cannot see what the agent is buying or at what price.
+    // ── Confidential purchase — only hash onchain ───────────────────────
+
     function requestConfidentialPurchase(bytes32 intentHash) external returns (bytes32 requestId) {
         requestId = keccak256(abi.encodePacked(intentHash, msg.sender, block.timestamp, _nonce++));
 
@@ -111,25 +149,18 @@ contract PurchaseGuard {
         emit ConfidentialPurchaseRequested(requestId, intentHash, msg.sender);
     }
 
-    /// @notice Oracle fulfills confidential purchase decision
-    function fulfillConfidentialDecision(bytes32 requestId, bool approved, uint256 referencePrice) external onlyOracle {
-        ConfidentialRequest storage req = confidentialRequests[requestId];
-        if (req.requester == address(0)) revert RequestNotFound();
-        if (req.fulfilled) revert AlreadyFulfilled();
+    // ── Oracle fulfillment (legacy — kept for direct oracle calls) ──────
 
-        req.fulfilled = true;
-        req.approved = approved;
-        req.referencePrice = referencePrice;
-
-        if (approved) {
-            emit PurchaseApproved(requestId, referencePrice);
-        } else {
-            emit PurchaseRejected(requestId, referencePrice, "Confidential evaluation failed");
-        }
+    function fulfillOracleDecision(bytes32 requestId, bool approved, uint256 referencePrice) external onlyOracle {
+        _fulfillStandard(requestId, approved, referencePrice);
     }
 
-    /// @notice Reveal phase — agent can optionally reveal purchase details after fulfillment.
-    ///         Verifies the revealed data matches the original commitment hash.
+    function fulfillConfidentialDecision(bytes32 requestId, bool approved, uint256 referencePrice) external onlyOracle {
+        _fulfillConfidential(requestId, approved, referencePrice);
+    }
+
+    // ── Reveal phase ────────────────────────────────────────────────────
+
     function revealPurchase(
         bytes32 requestId,
         string calldata itemId,
@@ -150,27 +181,8 @@ contract PurchaseGuard {
         emit ConfidentialPurchaseRevealed(requestId, itemId, proposedPrice, sellerId);
     }
 
-    /// @notice Oracle delivers the value verdict (standard mode)
-    function fulfillOracleDecision(bytes32 requestId, bool approved, uint256 referencePrice) external onlyOracle {
-        PurchaseRequest storage req = requests[requestId];
-        if (req.requester == address(0)) revert RequestNotFound();
-        if (req.fulfilled) revert AlreadyFulfilled();
+    // ── Agent reviews ───────────────────────────────────────────────────
 
-        req.fulfilled = true;
-        req.approved = approved;
-        req.referencePrice = referencePrice;
-
-        if (approved) {
-            emit PurchaseApproved(requestId, referencePrice);
-        } else {
-            string memory reason = req.proposedPrice > (referencePrice * 110) / 100
-                ? "Price exceeds market value"
-                : "Seller trust score too low";
-            emit PurchaseRejected(requestId, referencePrice, reason);
-        }
-    }
-
-    /// @notice Agent submits post-purchase feedback
     function submitReview(
         bytes32 requestId,
         uint8 qualityRating,
@@ -200,10 +212,53 @@ contract PurchaseGuard {
         emit ReviewSubmitted(requestId, req.itemId, req.sellerId, qualityRating, deliveryRating, valueRating, msg.sender);
     }
 
+    // ── Internal fulfillment logic ──────────────────────────────────────
+
+    function _fulfillStandard(bytes32 requestId, bool approved, uint256 referencePrice) internal {
+        PurchaseRequest storage req = requests[requestId];
+        if (req.requester == address(0)) revert RequestNotFound();
+        if (req.fulfilled) revert AlreadyFulfilled();
+
+        req.fulfilled = true;
+        req.approved = approved;
+        req.referencePrice = referencePrice;
+
+        if (approved) {
+            emit PurchaseApproved(requestId, referencePrice);
+        } else {
+            string memory reason = req.proposedPrice > (referencePrice * 110) / 100
+                ? "Price exceeds market value"
+                : "Seller trust score too low";
+            emit PurchaseRejected(requestId, referencePrice, reason);
+        }
+    }
+
+    function _fulfillConfidential(bytes32 requestId, bool approved, uint256 referencePrice) internal {
+        ConfidentialRequest storage req = confidentialRequests[requestId];
+        if (req.requester == address(0)) revert RequestNotFound();
+        if (req.fulfilled) revert AlreadyFulfilled();
+
+        req.fulfilled = true;
+        req.approved = approved;
+        req.referencePrice = referencePrice;
+
+        if (approved) {
+            emit PurchaseApproved(requestId, referencePrice);
+        } else {
+            emit PurchaseRejected(requestId, referencePrice, "Confidential evaluation failed");
+        }
+    }
+
+    // ── View functions ──────────────────────────────────────────────────
+
     function getReview(bytes32 requestId) external view returns (AgentReview memory) { return reviews[requestId]; }
     function getItemReviewCount(string calldata itemId) external view returns (uint256) { return itemReviews[itemId].length; }
     function getSellerReviewCount(string calldata sellerId) external view returns (uint256) { return sellerReviews[sellerId].length; }
     function getConfidentialRequest(bytes32 requestId) external view returns (ConfidentialRequest memory) { return confidentialRequests[requestId]; }
-    function setOracle(address _oracle) external onlyOwner { oracle = _oracle; }
     function getRequest(bytes32 requestId) external view returns (PurchaseRequest memory) { return requests[requestId]; }
+
+    // ── Admin ───────────────────────────────────────────────────────────
+
+    function setOracle(address _oracle) external onlyOwner { oracle = _oracle; }
+    function setForwarder(address _forwarder) external onlyOwner { forwarder = _forwarder; }
 }

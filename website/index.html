@@ -76,7 +76,7 @@ footer a{color:var(--al);transition:color .2s}footer a:hover{color:#fff}
 <div class="hb">
 <a href="#demo" class="btn bp">Try Live Demo</a>
 <a href="https://github.com/LeventLabs/ValueOracle" target="_blank" class="btn bo">View Source</a>
-<a href="https://sepolia.etherscan.io/address/0xfDB5020163742C340AAebAade840078CC557e1a1" target="_blank" class="el">View on Etherscan</a>
+<a href="https://sepolia.etherscan.io/address/0x22BEa4788e8AaFF94D3D575AA23Ec429AD198fFc" target="_blank" class="el">View on Etherscan</a>
 </div>
 </section>
 <section>
@@ -152,11 +152,12 @@ footer a{color:var(--al);transition:color .2s}footer a:hover{color:#fff}
 <h2>CRE Workflow Simulation</h2>
 <p class="sub">Real output from Chainlink CRE CLI &mdash; workflow compiled and simulated locally</p>
 <div class="term">
-<div class="p">$ cre workflow simulate purchase-guard --evm-tx-hash 0x6ea2...489e --evm-event-index 0</div>
+<div class="p">$ cre workflow simulate purchase-guard --evm-tx-hash 0x3ba1...f850 --evm-event-index 0</div>
 <br>
 <div class="ok">&#10003; Workflow compiled</div>
 <div class="i">[USER LOG] Purchase request detected: requestId=0xf18a46c3... item=laptop-001 price=$1100 seller=seller-42</div>
-<div class="i">[USER LOG] Purchase evaluation complete: verdict=APPROVE | score=95 | ref=$1095 | eff=$1048 | reason="Fair price and trusted seller"</div>
+<div class="i">[USER LOG] Purchase evaluation complete: verdict=APPROVE | score=95 | ref=$1099 | eff=$1048 | reason="Fair price and trusted seller"</div>
+<div class="i">[USER LOG] Decision written onchain: tx=0x00000000000...</div>
 <div class="ok">&#10003; Workflow Simulation Result: "APPROVE: score 95/100"</div>
 </div>
 </section>
@@ -199,14 +200,14 @@ footer a{color:var(--al);transition:color .2s}footer a:hover{color:#fff}
 <div class="card tc"><div style="font-weight:600">Privacy</div><div style="font-size:.85rem;color:var(--muted);margin-top:.25rem">Confidential HTTP + Commit-Reveal</div></div>
 <div class="card tc"><div style="font-weight:600">Decision Engine</div><div style="font-size:.85rem;color:var(--muted);margin-top:.25rem">Node.js + Express</div></div>
 <div class="card tc"><div style="font-weight:600">Agent Interface</div><div style="font-size:.85rem;color:var(--muted);margin-top:.25rem">CLI + Ethers.js</div></div>
-<div class="card tc"><div style="font-weight:600">Deployed Contract</div><div style="font-size:.85rem;color:var(--muted);margin-top:.25rem"><a href="https://sepolia.etherscan.io/address/0xfDB5020163742C340AAebAade840078CC557e1a1" target="_blank" style="color:var(--al)">View on Etherscan</a></div></div>
+<div class="card tc"><div style="font-weight:600">Deployed Contract</div><div style="font-size:.85rem;color:var(--muted);margin-top:.25rem"><a href="https://sepolia.etherscan.io/address/0x22BEa4788e8AaFF94D3D575AA23Ec429AD198fFc" target="_blank" style="color:var(--al)">View on Etherscan</a></div></div>
 </div>
 </section>
 </div>
 <footer>
 <div style="margin-bottom:.5rem">
 <a href="https://github.com/LeventLabs/ValueOracle" target="_blank" style="margin-right:1.5rem">GitHub</a>
-<a href="https://sepolia.etherscan.io/address/0xfDB5020163742C340AAebAade840078CC557e1a1" target="_blank" style="margin-right:1.5rem">Etherscan</a>
+<a href="https://sepolia.etherscan.io/address/0x22BEa4788e8AaFF94D3D575AA23Ec429AD198fFc" target="_blank" style="margin-right:1.5rem">Etherscan</a>
 <a href="https://leventlabs.com" target="_blank">LeventLabs</a>
 </div>
 <div style="font-size:.75rem">Built for Convergence &mdash; Chainlink Hackathon 2025</div>
@@ -214,12 +215,12 @@ footer a{color:var(--al);transition:color .2s}footer a:hover{color:#fff}
 <script>
 const API=window.location.hostname==='localhost'?'http://localhost:3000':'https://valueoracle-api.up.railway.app';
 const scenarios=[
-{name:'Fair Purchase',itemId:'laptop-001',price:1100,sellerId:'seller-42',fallback:{approved:true,verdict:'APPROVE',valueScore:95,referencePrice:1095,effectivePrice:1048,reason:'Fair price and trusted seller',deal:{cashback:52,coupon:0,shippingFee:0},breakdown:{priceFairness:100,qualitySignal:87,sellerTrust:88,valueRatio:100},seller:{score:0.88},product:{rating:4.7,reviewCount:12400,returnRate:2.1}}},
-{name:'Overpriced',itemId:'laptop-001',price:2500,sellerId:'seller-42',fallback:{approved:false,verdict:'CAUTION',valueScore:68,referencePrice:1095,effectivePrice:2448,reason:'Price 123.6% above market median',deal:{cashback:52,coupon:0,shippingFee:0},breakdown:{priceFairness:45,qualitySignal:87,sellerTrust:88,valueRatio:38},seller:{score:0.88},product:{rating:4.7,reviewCount:12400,returnRate:2.1}}},
-{name:'Untrusted Seller',itemId:'laptop-001',price:1000,sellerId:'seller-99',fallback:{approved:false,verdict:'REJECT',valueScore:81,referencePrice:1095,effectivePrice:948,reason:'Seller trust critically low (0.30/1.0) blocked',deal:{cashback:52,coupon:0,shippingFee:0},breakdown:{priceFairness:100,qualitySignal:87,sellerTrust:30,valueRatio:100},seller:{score:0.30},product:{rating:4.7,reviewCount:12400,returnRate:2.1}}},
-{name:'Low Quality',itemId:'cable-001',price:25,sellerId:'seller-200',fallback:{approved:false,verdict:'REJECT',valueScore:27,referencePrice:11,effectivePrice:30,reason:'Seller trust critically low (0.15/1.0) blocked',deal:{cashback:0,coupon:0,shippingFee:5},breakdown:{priceFairness:37,qualitySignal:14,sellerTrust:15,valueRatio:56},seller:{score:0.15},product:{rating:2.8,reviewCount:140,returnRate:18.5}}},
-{name:'Good Deal',itemId:'headphones-001',price:280,sellerId:'seller-100',fallback:{approved:true,verdict:'APPROVE',valueScore:95,referencePrice:295,effectivePrice:274,reason:'Fair price and trusted seller',deal:{cashback:14,coupon:0,shippingFee:8},breakdown:{priceFairness:100,qualitySignal:82,sellerTrust:92,valueRatio:100},seller:{score:0.92},product:{rating:4.6,reviewCount:8700,returnRate:3.4}}},
-{name:'Coupon Saves It',itemId:'phone-001',price:950,sellerId:'seller-42',fallback:{approved:true,verdict:'APPROVE',valueScore:93,referencePrice:899,effectivePrice:910,reason:'Fair price and trusted seller',deal:{cashback:0,coupon:40,shippingFee:0},breakdown:{priceFairness:99,qualitySignal:90,sellerTrust:88,valueRatio:100},seller:{score:0.88},product:{rating:4.5,reviewCount:31000,returnRate:1.8}}}
+{name:'Fair Purchase',itemId:'laptop-001',price:1100,sellerId:'seller-42',fallback:{approved:true,verdict:'APPROVE',valueScore:95,referencePrice:1099,effectivePrice:1048,reason:'Fair price and trusted seller',deal:{cashback:52,coupon:0,shippingFee:0},breakdown:{priceFairness:100,qualitySignal:87,sellerTrust:88,valueRatio:100},seller:{score:0.88},product:{rating:4.7,reviewCount:12400,returnRate:2.1}}},
+{name:'Overpriced',itemId:'laptop-001',price:2500,sellerId:'seller-42',fallback:{approved:false,verdict:'CAUTION',valueScore:68,referencePrice:1099,effectivePrice:2448,reason:'Price 123.6% above market median',deal:{cashback:52,coupon:0,shippingFee:0},breakdown:{priceFairness:45,qualitySignal:87,sellerTrust:88,valueRatio:38},seller:{score:0.88},product:{rating:4.7,reviewCount:12400,returnRate:2.1}}},
+{name:'Untrusted Seller',itemId:'laptop-001',price:1000,sellerId:'seller-99',fallback:{approved:false,verdict:'REJECT',valueScore:81,referencePrice:1099,effectivePrice:948,reason:'Seller trust critically low (0.30/1.0) blocked',deal:{cashback:52,coupon:0,shippingFee:0},breakdown:{priceFairness:100,qualitySignal:87,sellerTrust:30,valueRatio:100},seller:{score:0.30},product:{rating:4.7,reviewCount:12400,returnRate:2.1}}},
+{name:'Low Quality',itemId:'cable-001',price:25,sellerId:'seller-200',fallback:{approved:false,verdict:'REJECT',valueScore:30,referencePrice:13,effectivePrice:30,reason:'Seller trust critically low (0.15/1.0) blocked',deal:{cashback:0,coupon:0,shippingFee:5},breakdown:{priceFairness:37,qualitySignal:14,sellerTrust:15,valueRatio:56},seller:{score:0.15},product:{rating:2.8,reviewCount:140,returnRate:18.5}}},
+{name:'Good Deal',itemId:'headphones-001',price:280,sellerId:'seller-100',fallback:{approved:true,verdict:'APPROVE',valueScore:95,referencePrice:312,effectivePrice:274,reason:'Fair price and trusted seller',deal:{cashback:14,coupon:0,shippingFee:8},breakdown:{priceFairness:100,qualitySignal:82,sellerTrust:92,valueRatio:100},seller:{score:0.92},product:{rating:4.6,reviewCount:8700,returnRate:3.4}}},
+{name:'Coupon Saves It',itemId:'phone-001',price:950,sellerId:'seller-42',fallback:{approved:true,verdict:'APPROVE',valueScore:94,referencePrice:923,effectivePrice:910,reason:'Fair price and trusted seller',deal:{cashback:0,coupon:40,shippingFee:0},breakdown:{priceFairness:99,qualitySignal:90,sellerTrust:88,valueRatio:100},seller:{score:0.88},product:{rating:4.5,reviewCount:31000,returnRate:1.8}}}
 ];
 const $=id=>document.getElementById(id);
 const btnBox=$('scenarioBtns');

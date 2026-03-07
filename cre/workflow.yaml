@@ -1,12 +1,11 @@
 name: valueoracle-purchase-guard
 description: >
-  Chainlink CRE workflow for ValueOracle.
+  Chainlink CRE workflow reference spec for ValueOracle.
   Supports both standard and confidential purchase evaluation.
 
-  IMPORTANT: This YAML is a reference spec. The actual workflow is now
-  implemented in Go (valueoracle-cre-go/purchase-guard/main.go) to use
-  the ConfidentialHTTPClient from the Go CRE SDK. The TypeScript SDK
-  does not support Confidential HTTP.
+  The actual workflow is implemented in TypeScript
+  (valueoracle-cre/purchase-guard/main.ts) using the CRE SDK.
+  This YAML documents the logical flow for reference.
 
 triggers:
   # Standard purchase — public intent
@@ -27,8 +26,8 @@ triggers:
 
 actions:
   # ── Standard flow ──────────────────────────────────────────
-  # Implemented in Go: onStandardPurchase() handler
-  # Uses http.Client — each node calls the API, consensus on response
+  # Implemented in TS: onPurchaseRequested() handler
+  # Uses HTTPClient — each node calls the API, consensus on response
 
   - id: evaluate_purchase
     type: http_request
@@ -44,29 +43,36 @@ actions:
         sellerId: "$(trigger.sellerId)"
       timeout: 10000
 
-  - id: fulfill_decision
+  - id: write_decision
     type: onchain_write
     trigger: standard_purchase
     depends_on: evaluate_purchase
     config:
       network: sepolia
       contractAddress: "${CONTRACT_ADDRESS}"
-      function: "fulfillOracleDecision(bytes32,bool,uint256)"
-      args:
-        - "$(trigger.requestId)"
-        - "$(evaluate_purchase.approved)"
-        - "$(evaluate_purchase.referencePrice)"
-      gasLimit: 200000
+      function: "onReport(bytes,bytes)"
+      note: "CRE KeystoneForwarder calls onReport() via runtime.report() + evmClient.writeReport()"
+      gasLimit: 300000
 
   # ── Confidential flow ─────────────────────────────────────
-  # Implemented in Go: onConfidentialPurchase() handler
-  # Uses confidentialhttp.Client — request executes inside secure enclave
+  # Implemented in TS: onConfidentialPurchaseRequested() handler
+  # Step 1: HTTPClient resolves purchase details from intent cache (GET /intent/:hash)
+  # Step 2: ConfidentialHTTPClient evaluates inside secure enclave
   # Secrets injected via {{.marketplaceApiKey}} template (Vault DON)
-  # Response encrypted with AES-GCM (EncryptOutput: true)
+  # Response encrypted with AES-GCM (encryptOutput: true)
+
+  - id: resolve_intent
+    type: http_request
+    trigger: confidential_purchase
+    config:
+      method: GET
+      url: "${DECISION_API_URL}/intent/$(trigger.intentHash)"
+      timeout: 5000
 
   - id: evaluate_confidential
     type: confidential_http_request
     trigger: confidential_purchase
+    depends_on: resolve_intent
     config:
       method: POST
       url: "${DECISION_API_URL}/evaluate-confidential"
@@ -75,25 +81,25 @@ actions:
         Authorization: "Bearer {{.marketplaceApiKey}}"
       body:
         intentHash: "$(trigger.intentHash)"
+        itemId: "$(resolve_intent.itemId)"
+        price: "$(resolve_intent.price)"
+        sellerId: "$(resolve_intent.sellerId)"
       timeout: 10000
       encryptResponse: true
       vaultSecrets:
         - key: "marketplaceApiKey"
         - key: "san_marino_aes_gcm_encryption_key"
 
-  - id: fulfill_confidential
+  - id: write_confidential_decision
     type: onchain_write
     trigger: confidential_purchase
     depends_on: evaluate_confidential
     config:
       network: sepolia
       contractAddress: "${CONTRACT_ADDRESS}"
-      function: "fulfillConfidentialDecision(bytes32,bool,uint256)"
-      args:
-        - "$(trigger.requestId)"
-        - "$(evaluate_confidential.approved)"
-        - "$(evaluate_confidential.referencePrice)"
-      gasLimit: 200000
+      function: "onReport(bytes,bytes)"
+      note: "CRE KeystoneForwarder calls onReport() via runtime.report() + evmClient.writeReport()"
+      gasLimit: 300000
 
 # Secrets managed via CRE Vault DON (threshold-encrypted, no single node can access)
 secrets:
